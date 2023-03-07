@@ -42,7 +42,7 @@ fn decode(file_name: &str) {
         let decoded: String;
 
         (instruction_length, decoded) = match (b & 0b1111_1100) >> 2 {
-            op_code::MOV => decode_mov(bytes, current),
+            op_code::width_6::MOV => decode_mov(bytes, current),
             _ => (0, String::from("")), // TODO: replace by static empty string
         };
 
