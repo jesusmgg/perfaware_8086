@@ -17,15 +17,6 @@ fn main() {
     }
 }
 
-/// # 8086 instruction structure
-/// ## Byte 0
-/// - bits 0-5      : opcode
-/// - bit 6         : direction      0 -> REG is source     1 -> REG is destination
-/// - bit 7         : byte or word   0 -> byte operation    1 -> word operation  
-/// ## Byte 1
-/// - bits 0-1      : MODE
-/// - bits 2-4      : REG
-/// - bits 5-7      : R/M
 fn decode(file_name: &str) {
     let bytes = &fs::read(file_name).unwrap();
     let bytes_len = bytes.len();
@@ -37,13 +28,27 @@ fn decode(file_name: &str) {
 
     while current < bytes_len {
         let b = bytes[current]; // Current byte
-        let instruction_length: usize;
-        let decoded: String;
+        let mut instruction_length: usize;
+        let mut decoded: String;
 
-        (instruction_length, decoded) = match (b & 0b1111_1100) >> 2 {
-            op_code::width_6::MOV => decode_mov(bytes, current),
-            _ => (0, String::from("")), // TODO: replace by static empty string
+        // Instruction width 4
+        (instruction_length, decoded) = match (b & 0b1111_0000) >> 4 {
+            op_code::width_4::MOV_IMMEDIATE_REG => decode_mov_immediate_reg(bytes, current),
+            _ => (0, String::from("")),
         };
+
+        // Instruction width 6
+        if instruction_length == 0 {
+            (instruction_length, decoded) = match (b & 0b1111_1100) >> 2 {
+                op_code::width_6::MOV => decode_mov(bytes, current),
+                _ => (0, String::from("")),
+            };
+        }
+
+        if instruction_length == 0 {
+            eprintln!("Error: Instruction not handled (byte: {:#b})", b);
+            break;
+        }
 
         output.push_str(&decoded);
         current += instruction_length;
@@ -53,7 +58,7 @@ fn decode(file_name: &str) {
 }
 
 /// Decodes MOV instruction.
-/// Returns instruction length in bytes.
+/// Returns instruction length in bytes and output decoded string.
 fn decode_mov(bytes: &[u8], current: usize) -> (usize, String) {
     let mut output: String = "MOV ".to_string();
     let mut length: usize = 1;
@@ -62,7 +67,7 @@ fn decode_mov(bytes: &[u8], current: usize) -> (usize, String) {
     let direction: bool = b & (1 << 1) != 0;
     let word: bool = b & (1 << 0) != 0;
 
-    b = bytes[current + 1];
+    b = bytes[current + length];
     length += 1;
 
     let mode = (b & 0b1100_0000) >> 6;
@@ -70,16 +75,8 @@ fn decode_mov(bytes: &[u8], current: usize) -> (usize, String) {
     let reg = (b & 0b0011_1000) >> 3;
     let rm = b & 0b0000_0111;
 
-    let reg_str = if word {
-        register::word::get_str(reg)
-    } else {
-        register::byte::get_str(reg)
-    };
-    let rm_str = if word {
-        register::word::get_str(rm)
-    } else {
-        register::byte::get_str(rm)
-    };
+    let reg_str = get_register_str(reg, word);
+    let rm_str = get_register_str(rm, word);
 
     // direction == 1 => reg is destination
     let (destination_str, source_str) = if direction {
@@ -88,10 +85,49 @@ fn decode_mov(bytes: &[u8], current: usize) -> (usize, String) {
         (&rm_str, &reg_str)
     };
 
+    output_mov(&mut output, destination_str, source_str);
+
+    (length, output)
+}
+
+/// Decodes MOV immediate to register instruction.
+/// Returns instruction length in bytes and output decoded string.
+fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String) {
+    let mut output: String = "MOV ".to_string();
+    let mut length: usize = 1;
+    let mut b = bytes[current];
+
+    let word: bool = b & (1 << 3) != 0;
+    let reg = b & 0b0000_0111;
+    let reg_str = get_register_str(reg, word);
+
+    b = bytes[current + length];
+    length += 1;
+
+    let mut data: u16 = b as u16;
+
+    if word {
+        b = bytes[current + length];
+        length += 1;
+        data += b as u16 * 256;
+    }
+
+    output_mov(&mut output, &reg_str, &data.to_string());
+
+    (length, output)
+}
+
+fn output_mov(output: &mut String, destination_str: &str, source_str: &str) {
     output.push_str(destination_str);
     output.push_str(", ");
     output.push_str(source_str);
     output.push('\n');
+}
 
-    (length, output)
+fn get_register_str(reg_bytes: u8, is_word: bool) -> String {
+    if is_word {
+        register::word::get_str(reg_bytes)
+    } else {
+        register::byte::get_str(reg_bytes)
+    }
 }
