@@ -5,7 +5,6 @@ mod register;
 use std::env;
 
 use std::fs;
-use std::io::Write;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -50,9 +49,7 @@ fn decode(file_name: &str) {
         current += instruction_length;
     }
 
-    let mut out_file = fs::File::create("out.asm").unwrap();
-    write!(&mut out_file, "{}", &output).unwrap();
-    out_file.flush().unwrap();
+    println!("{}", &output);
 }
 
 /// Decodes MOV instruction.
