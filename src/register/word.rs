@@ -8,6 +8,7 @@ pub const BP: u8 = 0b101;
 pub const SI: u8 = 0b110;
 pub const DI: u8 = 0b111;
 
+// TODO: merge this with the effective address calculation module
 pub fn get_str(register: u8) -> String {
     match register {
         AX => "AX".to_string(),

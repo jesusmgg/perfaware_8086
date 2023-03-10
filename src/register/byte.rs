@@ -8,6 +8,7 @@ pub const CH: u8 = 0b101;
 pub const DH: u8 = 0b110;
 pub const BH: u8 = 0b111;
 
+// TODO: merge this with the effective address calculation module
 pub fn get_str(register: u8) -> String {
     match register {
         AL => "AL".to_string(),

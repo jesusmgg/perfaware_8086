@@ -1,4 +1,5 @@
 mod displacement_mode;
+mod effective_address_calculation;
 mod op_code;
 mod register;
 
@@ -76,7 +77,26 @@ fn decode_mov(bytes: &[u8], current: usize) -> (usize, String) {
     let rm = b & 0b0000_0111;
 
     let reg_str = get_register_str(reg, word);
-    let rm_str = get_register_str(rm, word);
+
+    let rm_str: String = match mode {
+        displacement_mode::REGISTER => get_register_str(rm, word),
+        displacement_mode::MEM_0_BIT => effective_address_calculation::get_str(rm, mode, 0, 0),
+        displacement_mode::MEM_8_BIT => {
+            b = bytes[current + length];
+            length += 1;
+            effective_address_calculation::get_str(rm, mode, b, 0)
+        }
+        displacement_mode::MEM_16_BIT => {
+            b = bytes[current + length];
+            let disp_hi = bytes[current + length + 1];
+            length += 2;
+            effective_address_calculation::get_str(rm, mode, b, disp_hi)
+        }
+        _ => {
+            println!("Invalid MOV mode: {:#b}", mode);
+            return (length, output);
+        }
+    };
 
     // direction == 1 => reg is destination
     let (destination_str, source_str) = if direction {
@@ -86,7 +106,6 @@ fn decode_mov(bytes: &[u8], current: usize) -> (usize, String) {
     };
 
     output_mov(&mut output, destination_str, source_str);
-
     (length, output)
 }
 
