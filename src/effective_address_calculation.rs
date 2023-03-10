@@ -44,7 +44,7 @@ pub fn get_str(rm: u8, mode: u8, displacement_low: u8, displacement_high: u8) ->
         _ => (),
     };
 
-    eac_string.push_str("]");
+    eac_string.push(']');
 
     eac_string
 }
