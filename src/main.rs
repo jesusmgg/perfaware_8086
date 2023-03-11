@@ -46,6 +46,16 @@ fn decode(file_name: &str) {
             };
         }
 
+        // Instruction width 7
+        if instruction_length == 0 {
+            (instruction_length, decoded) = match (b & 0b1111_1110) >> 1 {
+                op_code::width_7::MOV_IMMEDIATE_REG_MEM => {
+                    decode_mov_immediate_reg_mem(bytes, current)
+                }
+                _ => (0, String::from("")),
+            };
+        }
+
         if instruction_length == 0 {
             eprintln!("Error: Instruction not handled (byte: {:#b})", b);
             break;
@@ -80,7 +90,6 @@ fn decode_mov(bytes: &[u8], current: usize) -> (usize, String) {
 
     let rm_str: String = match mode {
         displacement_mode::REGISTER => get_register_str(rm, word),
-        displacement_mode::MEM_0_BIT => effective_address_calculation::get_str(rm, mode, 0, 0),
         displacement_mode::MEM_8_BIT => {
             b = bytes[current + length];
             length += 1;
@@ -92,6 +101,13 @@ fn decode_mov(bytes: &[u8], current: usize) -> (usize, String) {
             length += 2;
             effective_address_calculation::get_str(rm, mode, b, disp_hi)
         }
+        displacement_mode::MEM_0_BIT if rm == 0b110 => {
+            b = bytes[current + length];
+            let disp_hi = bytes[current + length + 1];
+            length += 2;
+            effective_address_calculation::get_str(rm, mode, b, disp_hi)
+        }
+        displacement_mode::MEM_0_BIT => effective_address_calculation::get_str(rm, mode, 0, 0),
         _ => {
             println!("Invalid MOV mode: {:#b}", mode);
             return (length, output);
@@ -132,6 +148,68 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String) {
     }
 
     output_mov(&mut output, &reg_str, &data.to_string());
+
+    (length, output)
+}
+
+/// Decodes MOV immediate to register/memory instruction with explicit sizes.
+/// Returns instruction length in bytes and output decoded string.
+fn decode_mov_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String) {
+    let mut output: String = "MOV ".to_string();
+    let mut length: usize = 1;
+    let mut b = bytes[current];
+
+    let word: bool = b & 1 != 0;
+
+    b = bytes[current + length];
+    length += 1;
+
+    let mode = (b & 0b1100_0000) >> 6;
+    let rm = b & 0b0000_0111;
+
+    let rm_str: String = match mode {
+        displacement_mode::REGISTER => get_register_str(rm, word),
+        displacement_mode::MEM_8_BIT => {
+            b = bytes[current + length];
+            length += 1;
+            effective_address_calculation::get_str(rm, mode, b, 0)
+        }
+        displacement_mode::MEM_16_BIT => {
+            b = bytes[current + length];
+            let disp_hi = bytes[current + length + 1];
+            length += 2;
+            effective_address_calculation::get_str(rm, mode, b, disp_hi)
+        }
+        displacement_mode::MEM_0_BIT if rm == 0b110 => {
+            b = bytes[current + length];
+            let disp_hi = bytes[current + length + 1];
+            length += 2;
+            effective_address_calculation::get_str(rm, mode, b, disp_hi)
+        }
+        displacement_mode::MEM_0_BIT => effective_address_calculation::get_str(rm, mode, 0, 0),
+        _ => {
+            println!("Invalid MOV mode: {:#b}", mode);
+            return (length, output);
+        }
+    };
+
+    b = bytes[current + length];
+    length += 1;
+
+    let mut data: u16 = b as u16;
+    let mut data_string;
+
+    if word {
+        b = bytes[current + length];
+        length += 1;
+        data += b as u16 * 256;
+        data_string = String::from("word ");
+    } else {
+        data_string = String::from("byte ");
+    }
+    data_string.push_str(&data.to_string());
+
+    output_mov(&mut output, &rm_str, &data_string);
 
     (length, output)
 }

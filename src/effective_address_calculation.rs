@@ -1,7 +1,7 @@
 use crate::displacement_mode;
 
 pub fn get_str(rm: u8, mode: u8, displacement_low: u8, displacement_high: u8) -> String {
-    let mut eac_str = match rm {
+    let eac_str = match rm {
         0b000 => "[BX + SI",
         0b001 => "[BX + DI",
         0b010 => "[BP + SI",
