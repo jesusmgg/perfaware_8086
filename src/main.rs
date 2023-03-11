@@ -52,6 +52,8 @@ fn decode(file_name: &str) {
                 op_code::width_7::MOV_IMMEDIATE_REG_MEM => {
                     decode_mov_immediate_reg_mem(bytes, current)
                 }
+                op_code::width_7::MOV_MEM_ACC => decode_mov_mem_acc(bytes, current, false),
+                op_code::width_7::MOV_ACC_MEM => decode_mov_mem_acc(bytes, current, true),
                 _ => (0, String::from("")),
             };
         }
@@ -210,6 +212,40 @@ fn decode_mov_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String)
     data_string.push_str(&data.to_string());
 
     output_mov(&mut output, &rm_str, &data_string);
+
+    (length, output)
+}
+
+/// Decodes MOV memory to accumulator.
+/// If `dir_acc_mem` parameter is `true`, decodes MOV accumulator to memory.
+/// Returns instruction length in bytes and output decoded string.
+fn decode_mov_mem_acc(bytes: &[u8], current: usize, dir_acc_mem: bool) -> (usize, String) {
+    let mut output: String = "MOV ".to_string();
+    let mut length: usize = 1;
+    let mut b = bytes[current];
+
+    let word: bool = b & 1 != 0;
+
+    let reg_string = register::word::get_str(register::word::AX);
+
+    b = bytes[current + length];
+    length += 1;
+
+    let mut address: u16 = b as u16;
+    let mut address_string = String::from("[");
+    if word {
+        b = bytes[current + length];
+        length += 1;
+        address += b as u16 * 256;
+    }
+    address_string.push_str(&address.to_string());
+    address_string.push(']');
+
+    if dir_acc_mem {
+        output_mov(&mut output, &address_string, &reg_string);
+    } else {
+        output_mov(&mut output, &reg_string, &address_string);
+    }
 
     (length, output)
 }
