@@ -79,16 +79,43 @@ fn decode(file_name: &str) {
             };
         }
 
+        // Instruction width 8
+        if instruction_length == 0 {
+            (instruction_length, decoded) = match b {
+                op_code::width_8::JNZ => decode_ip_inc_8(OpCode::Jnz, bytes, current),
+                op_code::width_8::JE => decode_ip_inc_8(OpCode::Je, bytes, current),
+                op_code::width_8::JL => decode_ip_inc_8(OpCode::Jl, bytes, current),
+                op_code::width_8::JLE => decode_ip_inc_8(OpCode::Jle, bytes, current),
+                op_code::width_8::JB => decode_ip_inc_8(OpCode::Jb, bytes, current),
+                op_code::width_8::JBE => decode_ip_inc_8(OpCode::Jbe, bytes, current),
+                op_code::width_8::JP => decode_ip_inc_8(OpCode::Jp, bytes, current),
+                op_code::width_8::JO => decode_ip_inc_8(OpCode::Jo, bytes, current),
+                op_code::width_8::JS => decode_ip_inc_8(OpCode::Js, bytes, current),
+                op_code::width_8::JNL => decode_ip_inc_8(OpCode::Jnl, bytes, current),
+                op_code::width_8::JG => decode_ip_inc_8(OpCode::Jg, bytes, current),
+                op_code::width_8::JNB => decode_ip_inc_8(OpCode::Jnb, bytes, current),
+                op_code::width_8::JA => decode_ip_inc_8(OpCode::Ja, bytes, current),
+                op_code::width_8::JNP => decode_ip_inc_8(OpCode::Jnp, bytes, current),
+                op_code::width_8::JNO => decode_ip_inc_8(OpCode::Jno, bytes, current),
+                op_code::width_8::JNS => decode_ip_inc_8(OpCode::Jns, bytes, current),
+                op_code::width_8::LOOP => decode_ip_inc_8(OpCode::Loop, bytes, current),
+                op_code::width_8::LOOPZ => decode_ip_inc_8(OpCode::Loopz, bytes, current),
+                op_code::width_8::LOOPNZ => decode_ip_inc_8(OpCode::Loopnz, bytes, current),
+                op_code::width_8::JCXZ => decode_ip_inc_8(OpCode::Jcxz, bytes, current),
+                _ => (0, String::from("")),
+            };
+        }
+
         if instruction_length == 0 {
             eprintln!("Error: Instruction not handled (byte: {:#b})", b);
             break;
         }
 
-        // Debug print
-        for i in current..current + instruction_length {
-            print!("{:08b} ", bytes[i]);
-        }
-        println!("  =>  {}", &decoded);
+        // // Debug print
+        // for i in current..current + instruction_length {
+        //     print!("{:08b} ", bytes[i]);
+        // }
+        // println!("  =>  {}", &decoded);
 
         output.push_str(&decoded);
         current += instruction_length;
@@ -152,7 +179,7 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
         (&rm_str, &reg_str)
     };
 
-    output_fmt(&mut output, op_str, destination_str, source_str);
+    output_fmt_op_dest_source(&mut output, op_str, destination_str, source_str);
     (length, output)
 }
 
@@ -180,7 +207,7 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String) {
         data += b as u16 * 256;
     }
 
-    output_fmt(&mut output, op_str, &reg_str, &data.to_string());
+    output_fmt_op_dest_source(&mut output, op_str, &reg_str, &data.to_string());
 
     (length, output)
 }
@@ -262,7 +289,7 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String) {
 
     data_string.push_str(&data.to_string());
 
-    output_fmt(&mut output, op_str, &rm_str, &data_string);
+    output_fmt_op_dest_source(&mut output, op_str, &rm_str, &data_string);
 
     (length, output)
 }
@@ -294,20 +321,45 @@ fn decode_mem_acc(op: OpCode, bytes: &[u8], current: usize, dir_acc_mem: bool) -
     address_string.push(']');
 
     if dir_acc_mem {
-        output_fmt(&mut output, op_str, &address_string, &reg_string);
+        output_fmt_op_dest_source(&mut output, op_str, &address_string, &reg_string);
     } else {
-        output_fmt(&mut output, op_str, &reg_string, &address_string);
+        output_fmt_op_dest_source(&mut output, op_str, &reg_string, &address_string);
     }
 
     (length, output)
 }
 
-fn output_fmt(output: &mut String, op_str: &str, destination_str: &str, source_str: &str) {
+/// Decodes instructions that take an 8 bit signed increment as argument (jumps, loops).
+/// Returns instruction length in bytes and output decoded string.
+fn decode_ip_inc_8(op: OpCode, bytes: &[u8], current: usize) -> (usize, String) {
+    let mut output: String = String::from("");
+    let op_str = op_code::strings::get_str(op);
+    let length: usize = 2;
+
+    let increment: u8 = bytes[current + 1];
+    output_fmt_op_dest(&mut output, op_str, &increment.to_string());
+
+    (length, output)
+}
+
+fn output_fmt_op_dest_source(
+    output: &mut String,
+    op_str: &str,
+    destination_str: &str,
+    source_str: &str,
+) {
     output.push_str(op_str);
     output.push(' ');
     output.push_str(destination_str);
     output.push_str(", ");
     output.push_str(source_str);
+    output.push('\n');
+}
+
+fn output_fmt_op_dest(output: &mut String, op_str: &str, destination_str: &str) {
+    output.push_str(op_str);
+    output.push(' ');
+    output.push_str(destination_str);
     output.push('\n');
 }
 
