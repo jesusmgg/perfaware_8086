@@ -336,8 +336,9 @@ fn decode_ip_inc_8(op: OpCode, bytes: &[u8], current: usize) -> (usize, String) 
     let op_str = op_code::strings::get_str(op);
     let length: usize = 2;
 
-    let increment: u8 = bytes[current + 1];
-    output_fmt_op_dest(&mut output, op_str, &increment.to_string());
+    let increment: i8 = bytes[current + 1] as i8;
+    let increment_string = format!("${:+}", increment);
+    output_fmt_op_dest(&mut output, op_str, &increment_string);
 
     (length, output)
 }
