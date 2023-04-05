@@ -2,7 +2,9 @@ mod decoder;
 mod displacement_mode;
 mod effective_address_calculation;
 mod op_code;
+pub mod program;
 mod register;
+mod simulator;
 
 use std::env;
 
@@ -18,7 +20,7 @@ fn main() {
 
     match operation.as_str() {
         "decode" => decoder::decode(operand),
-        // "simulate"
+        "simulate" => simulator::simulate::simulate(operand),
         &_ => print_help(),
     }
 }

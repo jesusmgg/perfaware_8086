@@ -3,7 +3,7 @@ use std::fs;
 use crate::{
     displacement_mode, effective_address_calculation,
     op_code::{self, op::OpCode},
-    register::{self, util::get_register_str},
+    register::{self, util::get_register_str_and_operand},
 };
 
 pub fn decode(file_name: &str) {
@@ -130,28 +130,30 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
     let reg = (b & 0b0011_1000) >> 3;
     let rm = b & 0b0000_0111;
 
-    let reg_str = get_register_str(reg, word);
+    let (reg_str, reg_operand) = get_register_str_and_operand(reg, word).unwrap();
 
-    let rm_str: String = match mode {
-        displacement_mode::REGISTER => get_register_str(rm, word),
+    let (rm_str, rm_operand) = match mode {
+        displacement_mode::REGISTER => get_register_str_and_operand(rm, word).unwrap(),
         displacement_mode::MEM_8_BIT => {
             b = bytes[current + length];
             length += 1;
-            effective_address_calculation::get_str(rm, mode, b, 0)
+            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, 0).unwrap()
         }
         displacement_mode::MEM_16_BIT => {
             b = bytes[current + length];
             let disp_hi = bytes[current + length + 1];
             length += 2;
-            effective_address_calculation::get_str(rm, mode, b, disp_hi)
+            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, disp_hi).unwrap()
         }
         displacement_mode::MEM_0_BIT if rm == 0b110 => {
             b = bytes[current + length];
             let disp_hi = bytes[current + length + 1];
             length += 2;
-            effective_address_calculation::get_str(rm, mode, b, disp_hi)
+            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, disp_hi).unwrap()
         }
-        displacement_mode::MEM_0_BIT => effective_address_calculation::get_str(rm, mode, 0, 0),
+        displacement_mode::MEM_0_BIT => {
+            effective_address_calculation::get_eac_str_and_operand(rm, mode, 0, 0).unwrap()
+        }
         _ => {
             println!("Invalid MOV mode: {:#b}", mode);
             return (length, output);
@@ -180,7 +182,7 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String) {
 
     let word: bool = b & (1 << 3) != 0;
     let reg = b & 0b0000_0111;
-    let reg_str = get_register_str(reg, word);
+    let (reg_str, reg_operand) = get_register_str_and_operand(reg, word).unwrap();
 
     b = bytes[current + length];
     length += 1;
@@ -230,26 +232,28 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String) {
     let mode = (b & 0b1100_0000) >> 6;
     let rm = b & 0b0000_0111;
 
-    let rm_str: String = match mode {
-        displacement_mode::REGISTER => get_register_str(rm, word),
+    let (rm_str, rm_operand) = match mode {
+        displacement_mode::REGISTER => get_register_str_and_operand(rm, word).unwrap(),
         displacement_mode::MEM_8_BIT => {
             b = bytes[current + length];
             length += 1;
-            effective_address_calculation::get_str(rm, mode, b, 0)
+            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, 0).unwrap()
         }
         displacement_mode::MEM_16_BIT => {
             b = bytes[current + length];
             let disp_hi = bytes[current + length + 1];
             length += 2;
-            effective_address_calculation::get_str(rm, mode, b, disp_hi)
+            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, disp_hi).unwrap()
         }
         displacement_mode::MEM_0_BIT if rm == 0b110 => {
             b = bytes[current + length];
             let disp_hi = bytes[current + length + 1];
             length += 2;
-            effective_address_calculation::get_str(rm, mode, b, disp_hi)
+            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, disp_hi).unwrap()
         }
-        displacement_mode::MEM_0_BIT => effective_address_calculation::get_str(rm, mode, 0, 0),
+        displacement_mode::MEM_0_BIT => {
+            effective_address_calculation::get_eac_str_and_operand(rm, mode, 0, 0).unwrap()
+        }
         _ => {
             println!("Invalid MOV mode: {:#b}", mode);
             return (length, output);
