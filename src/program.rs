@@ -13,7 +13,7 @@ impl Program {
     pub fn new(bytes: Vec<u8>) -> Self {
         let bytes_len = bytes.len();
 
-        let instructions = Vec::<Instruction>::new();
+        let instructions = Vec::<Instruction>::with_capacity(2048);
         let instruction_counter = 0;
 
         Self {
@@ -23,14 +23,56 @@ impl Program {
             instruction_counter,
         }
     }
+
+    pub fn push_instruction(&mut self, instruction: Instruction) {
+        self.instructions.push(instruction);
+    }
+
+    pub fn has_pending_instructions(&self) -> bool {
+        self.instruction_counter < self.instructions.len()
+    }
+
+    /// Returns next instruction and advances `instruction_counter`.
+    pub fn next_instruction(&mut self) -> Option<&Instruction> {
+        if self.instruction_counter >= self.instructions.len() {
+            println!("Reached end of program instruction list");
+            return None;
+        } else {
+            let instruction = &self.instructions[self.instruction_counter];
+            self.instruction_counter += 1;
+            return Some(instruction);
+        }
+    }
 }
 
 /// A single decoded instruction
 pub struct Instruction {
     pub op_code: OpCode,
 
-    pub dest_operand: InstructionOperand,
-    pub src_operand: InstructionOperand,
+    pub dest_operand: Option<InstructionOperand>,
+    pub src_operand: Option<InstructionOperand>,
+}
+
+impl Instruction {
+    pub fn new(
+        op_code: OpCode,
+        dest_operand: InstructionOperand,
+        src_operand: InstructionOperand,
+    ) -> Self {
+        Self {
+            op_code,
+            dest_operand: Some(dest_operand),
+            src_operand: Some(src_operand),
+        }
+    }
+
+    pub fn invalid() -> Self {
+        Instruction {
+            op_code: OpCode::Invalid,
+            dest_operand: None,
+            src_operand: None,
+        }
+    }
 }
 
 pub struct InstructionOperand {

@@ -19,9 +19,15 @@ fn main() {
     let operand = &args[2];
 
     match operation.as_str() {
-        "decode" => decoder::decode(operand),
-        "simulate" => simulator::simulate::simulate(operand),
-        &_ => print_help(),
+        "decode" => {
+            decoder::decode(operand);
+        }
+        "simulate" => {
+            simulator::simulate::simulate(operand);
+        }
+        &_ => {
+            print_help();
+        }
     }
 }
 

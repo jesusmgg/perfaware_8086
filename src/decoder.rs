@@ -3,63 +3,74 @@ use std::fs;
 use crate::{
     displacement_mode, effective_address_calculation,
     op_code::{self, op::OpCode},
+    program::{Instruction, InstructionOperand, OperandType, Program},
     register::{self, util::get_register_str_and_operand},
 };
 
-pub fn decode(file_name: &str) {
+/// Decodes an asm file and returns a `Program` with the decoded instructions.
+pub fn decode(file_name: &str) -> Result<Program, ()> {
+    println!("Decoder started with {}", file_name);
+
     let bytes = &fs::read(file_name).unwrap();
     let bytes_len = bytes.len();
-    let mut current: usize = 0;
+    let mut cur_byte: usize = 0;
+
+    let mut program = Program::new(bytes.clone());
 
     let mut output: String = Default::default();
 
     output.push_str("bits 16\n\n");
 
-    while current < bytes_len {
-        let b = bytes[current]; // Current byte
+    while cur_byte < bytes_len {
+        let b = bytes[cur_byte]; // Current byte
         let mut instruction_length: usize;
-        let mut decoded: String;
+        let mut decoded_string: String;
+        let mut instruction: Instruction;
 
         // Instruction width 4
-        (instruction_length, decoded) = match (b & 0b1111_0000) >> 4 {
-            op_code::width_4::MOV_IMMEDIATE_REG => decode_mov_immediate_reg(bytes, current),
-            _ => (0, String::from("")),
+        (instruction_length, decoded_string, instruction) = match (b & 0b1111_0000) >> 4 {
+            op_code::width_4::MOV_IMMEDIATE_REG => decode_mov_immediate_reg(bytes, cur_byte),
+            _ => (0, String::from(""), Instruction::invalid()),
         };
 
         // Instruction width 6
         if instruction_length == 0 {
-            (instruction_length, decoded) = match (b & 0b1111_1100) >> 2 {
+            (instruction_length, decoded_string) = match (b & 0b1111_1100) >> 2 {
                 op_code::width_6::MOV_REG_MEM_REG => {
-                    decode_reg_mem_reg(OpCode::Mov, bytes, current)
+                    decode_reg_mem_reg(OpCode::Mov, bytes, cur_byte)
                 }
                 op_code::width_6::ADD_REG_MEM_REG => {
-                    decode_reg_mem_reg(OpCode::Add, bytes, current)
+                    decode_reg_mem_reg(OpCode::Add, bytes, cur_byte)
                 }
                 op_code::width_6::SUB_REG_MEM_REG => {
-                    decode_reg_mem_reg(OpCode::Sub, bytes, current)
+                    decode_reg_mem_reg(OpCode::Sub, bytes, cur_byte)
                 }
                 op_code::width_6::CMP_REG_MEM_REG => {
-                    decode_reg_mem_reg(OpCode::Cmp, bytes, current)
+                    decode_reg_mem_reg(OpCode::Cmp, bytes, cur_byte)
                 }
-                op_code::width_6::IMMEDIATE_REG_MEM => decode_immediate_reg_mem(bytes, current),
+                op_code::width_6::IMMEDIATE_REG_MEM => decode_immediate_reg_mem(bytes, cur_byte),
                 _ => (0, String::from("")),
             };
         }
 
         // Instruction width 7
         if instruction_length == 0 {
-            (instruction_length, decoded) = match (b & 0b1111_1110) >> 1 {
-                op_code::width_7::MOV_IMMEDIATE_REG_MEM => decode_immediate_reg_mem(bytes, current),
-                op_code::width_7::MOV_MEM_ACC => decode_mem_acc(OpCode::Mov, bytes, current, false),
-                op_code::width_7::MOV_ACC_MEM => decode_mem_acc(OpCode::Mov, bytes, current, true),
+            (instruction_length, decoded_string) = match (b & 0b1111_1110) >> 1 {
+                op_code::width_7::MOV_IMMEDIATE_REG_MEM => {
+                    decode_immediate_reg_mem(bytes, cur_byte)
+                }
+                op_code::width_7::MOV_MEM_ACC => {
+                    decode_mem_acc(OpCode::Mov, bytes, cur_byte, false)
+                }
+                op_code::width_7::MOV_ACC_MEM => decode_mem_acc(OpCode::Mov, bytes, cur_byte, true),
                 op_code::width_7::ADD_IMMEDIATE_ACC => {
-                    decode_mem_acc(OpCode::Add, bytes, current, false)
+                    decode_mem_acc(OpCode::Add, bytes, cur_byte, false)
                 }
                 op_code::width_7::SUB_IMMEDIATE_ACC => {
-                    decode_mem_acc(OpCode::Sub, bytes, current, false)
+                    decode_mem_acc(OpCode::Sub, bytes, cur_byte, false)
                 }
                 op_code::width_7::CMP_IMMEDIATE_ACC => {
-                    decode_mem_acc(OpCode::Cmp, bytes, current, false)
+                    decode_mem_acc(OpCode::Cmp, bytes, cur_byte, false)
                 }
                 _ => (0, String::from("")),
             };
@@ -67,27 +78,27 @@ pub fn decode(file_name: &str) {
 
         // Instruction width 8
         if instruction_length == 0 {
-            (instruction_length, decoded) = match b {
-                op_code::width_8::JNZ => decode_ip_inc_8(OpCode::Jnz, bytes, current),
-                op_code::width_8::JE => decode_ip_inc_8(OpCode::Je, bytes, current),
-                op_code::width_8::JL => decode_ip_inc_8(OpCode::Jl, bytes, current),
-                op_code::width_8::JLE => decode_ip_inc_8(OpCode::Jle, bytes, current),
-                op_code::width_8::JB => decode_ip_inc_8(OpCode::Jb, bytes, current),
-                op_code::width_8::JBE => decode_ip_inc_8(OpCode::Jbe, bytes, current),
-                op_code::width_8::JP => decode_ip_inc_8(OpCode::Jp, bytes, current),
-                op_code::width_8::JO => decode_ip_inc_8(OpCode::Jo, bytes, current),
-                op_code::width_8::JS => decode_ip_inc_8(OpCode::Js, bytes, current),
-                op_code::width_8::JNL => decode_ip_inc_8(OpCode::Jnl, bytes, current),
-                op_code::width_8::JG => decode_ip_inc_8(OpCode::Jg, bytes, current),
-                op_code::width_8::JNB => decode_ip_inc_8(OpCode::Jnb, bytes, current),
-                op_code::width_8::JA => decode_ip_inc_8(OpCode::Ja, bytes, current),
-                op_code::width_8::JNP => decode_ip_inc_8(OpCode::Jnp, bytes, current),
-                op_code::width_8::JNO => decode_ip_inc_8(OpCode::Jno, bytes, current),
-                op_code::width_8::JNS => decode_ip_inc_8(OpCode::Jns, bytes, current),
-                op_code::width_8::LOOP => decode_ip_inc_8(OpCode::Loop, bytes, current),
-                op_code::width_8::LOOPZ => decode_ip_inc_8(OpCode::Loopz, bytes, current),
-                op_code::width_8::LOOPNZ => decode_ip_inc_8(OpCode::Loopnz, bytes, current),
-                op_code::width_8::JCXZ => decode_ip_inc_8(OpCode::Jcxz, bytes, current),
+            (instruction_length, decoded_string) = match b {
+                op_code::width_8::JNZ => decode_ip_inc_8(OpCode::Jnz, bytes, cur_byte),
+                op_code::width_8::JE => decode_ip_inc_8(OpCode::Je, bytes, cur_byte),
+                op_code::width_8::JL => decode_ip_inc_8(OpCode::Jl, bytes, cur_byte),
+                op_code::width_8::JLE => decode_ip_inc_8(OpCode::Jle, bytes, cur_byte),
+                op_code::width_8::JB => decode_ip_inc_8(OpCode::Jb, bytes, cur_byte),
+                op_code::width_8::JBE => decode_ip_inc_8(OpCode::Jbe, bytes, cur_byte),
+                op_code::width_8::JP => decode_ip_inc_8(OpCode::Jp, bytes, cur_byte),
+                op_code::width_8::JO => decode_ip_inc_8(OpCode::Jo, bytes, cur_byte),
+                op_code::width_8::JS => decode_ip_inc_8(OpCode::Js, bytes, cur_byte),
+                op_code::width_8::JNL => decode_ip_inc_8(OpCode::Jnl, bytes, cur_byte),
+                op_code::width_8::JG => decode_ip_inc_8(OpCode::Jg, bytes, cur_byte),
+                op_code::width_8::JNB => decode_ip_inc_8(OpCode::Jnb, bytes, cur_byte),
+                op_code::width_8::JA => decode_ip_inc_8(OpCode::Ja, bytes, cur_byte),
+                op_code::width_8::JNP => decode_ip_inc_8(OpCode::Jnp, bytes, cur_byte),
+                op_code::width_8::JNO => decode_ip_inc_8(OpCode::Jno, bytes, cur_byte),
+                op_code::width_8::JNS => decode_ip_inc_8(OpCode::Jns, bytes, cur_byte),
+                op_code::width_8::LOOP => decode_ip_inc_8(OpCode::Loop, bytes, cur_byte),
+                op_code::width_8::LOOPZ => decode_ip_inc_8(OpCode::Loopz, bytes, cur_byte),
+                op_code::width_8::LOOPNZ => decode_ip_inc_8(OpCode::Loopnz, bytes, cur_byte),
+                op_code::width_8::JCXZ => decode_ip_inc_8(OpCode::Jcxz, bytes, cur_byte),
                 _ => (0, String::from("")),
             };
         }
@@ -103,11 +114,15 @@ pub fn decode(file_name: &str) {
         // }
         // println!("  =>  {}", &decoded);
 
-        output.push_str(&decoded);
-        current += instruction_length;
+        output.push_str(&decoded_string);
+        cur_byte += instruction_length;
+
+        program.push_instruction(instruction);
     }
 
     println!("{}", &output);
+
+    Ok(program)
 }
 
 /// Decodes MOV/ADD/SUB/CMP instruction from register/memory to/from/with register.
@@ -173,9 +188,10 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
 
 /// Decodes MOV immediate to register instruction.
 /// Returns instruction length in bytes and output decoded string.
-fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String) {
+fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String, Instruction) {
     let mut output: String = String::from("");
-    let op_str = op_code::strings::get_str(OpCode::Mov);
+    let op_code = OpCode::Mov;
+    let op_str = op_code::strings::get_str(op_code);
 
     let mut length: usize = 1;
     let mut b = bytes[current];
@@ -197,7 +213,12 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String) {
 
     output_fmt_op_dest_source(&mut output, op_str, &reg_str, &data.to_string());
 
-    (length, output)
+    let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
+    src_operand.literal = Some(data);
+
+    let instruction = Instruction::new(op_code, reg_operand, src_operand);
+
+    (length, output, instruction)
 }
 
 /// Decodes MOV/ADD/SUB/CMP immediate to register/memory instruction with explicit sizes.
