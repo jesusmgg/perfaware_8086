@@ -4,7 +4,7 @@ use crate::{
     displacement_mode, effective_address_calculation,
     op_code::{self, op::OpCode},
     program::{Instruction, InstructionOperand, OperandType, Program},
-    register::{self, util::get_register_str_and_operand},
+    register::{self, util::get_register_string_and_operand},
 };
 
 /// Decodes an asm file and returns a `Program` with the decoded instructions.
@@ -147,10 +147,10 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
     let reg = (b & 0b0011_1000) >> 3;
     let rm = b & 0b0000_0111;
 
-    let (reg_str, reg_operand) = get_register_str_and_operand(reg, word).unwrap();
+    let (reg_str, reg_operand) = get_register_string_and_operand(reg, word).unwrap();
 
     let (rm_str, rm_operand) = match mode {
-        displacement_mode::REGISTER => get_register_str_and_operand(rm, word).unwrap(),
+        displacement_mode::REGISTER => get_register_string_and_operand(rm, word).unwrap(),
         displacement_mode::MEM_8_BIT => {
             b = bytes[current + length];
             length += 1;
@@ -200,7 +200,7 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String, Ins
 
     let word: bool = b & (1 << 3) != 0;
     let reg = b & 0b0000_0111;
-    let (reg_str, reg_operand) = get_register_str_and_operand(reg, word).unwrap();
+    let (reg_str, reg_operand) = get_register_string_and_operand(reg, word).unwrap();
 
     b = bytes[current + length];
     length += 1;
@@ -256,7 +256,7 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String) {
     let rm = b & 0b0000_0111;
 
     let (rm_str, rm_operand) = match mode {
-        displacement_mode::REGISTER => get_register_str_and_operand(rm, word).unwrap(),
+        displacement_mode::REGISTER => get_register_string_and_operand(rm, word).unwrap(),
         displacement_mode::MEM_8_BIT => {
             b = bytes[current + length];
             length += 1;

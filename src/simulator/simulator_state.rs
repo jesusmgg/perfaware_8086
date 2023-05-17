@@ -1,4 +1,7 @@
-use crate::register;
+use crate::register::{
+    self,
+    util::{get_register_string, get_register_string_and_operand},
+};
 
 pub struct SimulatorState {
     pub registers: SimulatorRegisters,
@@ -41,44 +44,102 @@ impl SimulatorRegisters {
 
     /// Writes data into a register.
     pub fn write(&mut self, data: u16, reg_bytes: u8, is_word: bool) {
+        let old_data: u16;
+
         if is_word {
             match reg_bytes {
-                register::word::AX => self.ax = data,
-                register::word::BX => self.bx = data,
-                register::word::CX => self.cx = data,
-                register::word::DX => self.dx = data,
-                register::word::SP => self.sp = data,
-                register::word::BP => self.bp = data,
-                register::word::SI => self.si = data,
-                register::word::DI => self.di = data,
-                _ => (),
+                register::word::AX => {
+                    old_data = self.ax;
+                    self.ax = data;
+                }
+                register::word::BX => {
+                    old_data = self.bx;
+                    self.bx = data;
+                }
+                register::word::CX => {
+                    old_data = self.cx;
+                    self.cx = data;
+                }
+                register::word::DX => {
+                    old_data = self.dx;
+                    self.dx = data;
+                }
+                register::word::SP => {
+                    old_data = self.sp;
+                    self.sp = data;
+                }
+                register::word::BP => {
+                    old_data = self.bp;
+                    self.bp = data;
+                }
+                register::word::SI => {
+                    old_data = self.si;
+                    self.si = data;
+                }
+                register::word::DI => {
+                    old_data = self.di;
+                    self.di = data;
+                }
+                _ => old_data = 0,
             }
         }
-        // else {
-        //     match reg_bytes {
-        //         register::byte::AL => self.ax = data,
-        //         register::byte::BL => self.bx = data,
-        //         register::byte::CL => self.cx = data,
-        //         register::byte::DL => self.dx = data,
-        //         register::byte::AH => self.sp = data,
-        //         register::byte::BH => self.bp = data,
-        //         register::byte::CH => self.si = data,
-        //         register::byte::DH => self.di = data,
-        //         _ => (),
-        //     }
+        // TODO: manage byte registers
+        else {
+            match reg_bytes {
+                register::byte::AL => {
+                    old_data = self.ax;
+                    // self.ax = data;
+                }
+                register::byte::BL => {
+                    old_data = self.bx;
+                    // self.bx = data;
+                }
+                register::byte::CL => {
+                    old_data = self.cx;
+                    // self.cx = data;
+                }
+                register::byte::DL => {
+                    old_data = self.dx;
+                    // self.dx = data;
+                }
+                register::byte::AH => {
+                    old_data = self.sp;
+                    // self.sp = data;
+                }
+                register::byte::BH => {
+                    old_data = self.bp;
+                    // self.bp = data;
+                }
+                register::byte::CH => {
+                    old_data = self.si;
+                    // self.si = data;
+                }
+                register::byte::DH => {
+                    old_data = self.di;
+                    // self.di = data;
+                }
+                _ => old_data = 0,
+            }
+        }
+
+        let reg_string = get_register_string(reg_bytes, is_word);
+
+        println!(
+            "Register {}: 0x{:02x} -> 0x{:02x}",
+            reg_string, old_data, data
+        );
     }
 
     pub fn print(&self) {
         println!(
-            "ax: 0x{:02x}
-bx: 0x{:02x}
-cx: 0x{:02x}
-dx: 0x{:02x}
-
-sp: 0x{:02x}
-bp: 0x{:02x}
-si: 0x{:02x}
-di: 0x{:02x}
+            "AX: 0x{:02x}
+BX: 0x{:02x}
+CX: 0x{:02x}
+DX: 0x{:02x}
+SP: 0x{:02x}
+BP: 0x{:02x}
+SI: 0x{:02x}
+DI: 0x{:02x}
 ",
             self.ax, self.bx, self.cx, self.dx, self.sp, self.bp, self.si, self.di
         );

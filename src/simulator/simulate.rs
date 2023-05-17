@@ -23,7 +23,9 @@ pub fn simulate(file_name: &str) {
     while program.has_pending_instructions() {
         match program.next_instruction() {
             Some(instruction) => match instruction.op_code {
-                OpCode::Invalid => (),
+                OpCode::Invalid => {
+                    println!("Error: Can't simulate intruction: invalid op code.")
+                }
                 OpCode::Mov => simulate_mov(&instruction, &mut state),
                 OpCode::Add => todo!(),
                 OpCode::Sub => todo!(),
@@ -53,7 +55,7 @@ pub fn simulate(file_name: &str) {
         }
     }
 
-    println!("Final state");
+    println!("\nFinal state");
     state.registers.print();
 }
 
