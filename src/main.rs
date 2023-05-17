@@ -8,11 +8,11 @@ mod simulator;
 
 use std::env;
 
-fn main() {
+fn main() -> Result<(), ()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 {
         print_help();
-        return;
+        return Ok(());
     }
 
     let operation = &args[1];
@@ -20,7 +20,7 @@ fn main() {
 
     match operation.as_str() {
         "decode" => {
-            decoder::decode(operand);
+            decoder::decode(operand)?;
         }
         "simulate" => {
             simulator::simulate::simulate(operand);
@@ -29,6 +29,8 @@ fn main() {
             print_help();
         }
     }
+
+    Ok(())
 }
 
 fn print_help() {

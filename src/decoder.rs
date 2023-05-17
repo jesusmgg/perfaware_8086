@@ -1,7 +1,8 @@
 use std::fs;
 
 use crate::{
-    displacement_mode, effective_address_calculation,
+    displacement_mode,
+    effective_address_calculation::{self, get_eac_string_and_operand},
     op_code::{self, op::OpCode},
     program::{Instruction, InstructionOperand, OperandType, Program},
     register::{self, util::get_register_string_and_operand},
@@ -25,7 +26,7 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
         let b = bytes[curr_byte]; // Current byte
         let mut instruction_length: usize;
         let mut decoded_string: String;
-        let instruction: Instruction;
+        let mut instruction: Instruction;
 
         // Instruction width 4
         (instruction_length, decoded_string, instruction) = match (b & 0b1111_0000) >> 4 {
@@ -35,7 +36,7 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
 
         // Instruction width 6
         if instruction_length == 0 {
-            (instruction_length, decoded_string) = match (b & 0b1111_1100) >> 2 {
+            (instruction_length, decoded_string, instruction) = match (b & 0b1111_1100) >> 2 {
                 op_code::width_6::MOV_REG_MEM_REG => {
                     decode_reg_mem_reg(OpCode::Mov, bytes, curr_byte)
                 }
@@ -49,13 +50,13 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
                     decode_reg_mem_reg(OpCode::Cmp, bytes, curr_byte)
                 }
                 op_code::width_6::IMMEDIATE_REG_MEM => decode_immediate_reg_mem(bytes, curr_byte),
-                _ => (0, String::from("")),
+                _ => (0, String::from(""), Instruction::invalid()),
             };
         }
 
         // Instruction width 7
         if instruction_length == 0 {
-            (instruction_length, decoded_string) = match (b & 0b1111_1110) >> 1 {
+            (instruction_length, decoded_string, instruction) = match (b & 0b1111_1110) >> 1 {
                 op_code::width_7::MOV_IMMEDIATE_REG_MEM => {
                     decode_immediate_reg_mem(bytes, curr_byte)
                 }
@@ -74,7 +75,7 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
                 op_code::width_7::CMP_IMMEDIATE_ACC => {
                     decode_mem_acc(OpCode::Cmp, bytes, curr_byte, false)
                 }
-                _ => (0, String::from("")),
+                _ => (0, String::from(""), Instruction::invalid()),
             };
         }
 
@@ -129,7 +130,7 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
 
 /// Decodes MOV/ADD/SUB/CMP instruction from register/memory to/from/with register.
 /// Returns instruction length in bytes and output decoded string.
-fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, String) {
+fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, String, Instruction) {
     let mut output: String = String::from("");
     let op_str = op_code::strings::get_str(op);
 
@@ -154,38 +155,41 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
         displacement_mode::MEM_8_BIT => {
             b = bytes[current + length];
             length += 1;
-            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, 0).unwrap()
+            effective_address_calculation::get_eac_string_and_operand(rm, mode, b, 0).unwrap()
         }
         displacement_mode::MEM_16_BIT => {
             b = bytes[current + length];
             let disp_hi = bytes[current + length + 1];
             length += 2;
-            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, disp_hi).unwrap()
+            effective_address_calculation::get_eac_string_and_operand(rm, mode, b, disp_hi).unwrap()
         }
         displacement_mode::MEM_0_BIT if rm == 0b110 => {
             b = bytes[current + length];
             let disp_hi = bytes[current + length + 1];
             length += 2;
-            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, disp_hi).unwrap()
+            effective_address_calculation::get_eac_string_and_operand(rm, mode, b, disp_hi).unwrap()
         }
         displacement_mode::MEM_0_BIT => {
-            effective_address_calculation::get_eac_str_and_operand(rm, mode, 0, 0).unwrap()
+            effective_address_calculation::get_eac_string_and_operand(rm, mode, 0, 0).unwrap()
         }
         _ => {
             println!("Invalid MOV mode: {:#b}", mode);
-            return (length, output);
+            return (length, output, Instruction::invalid());
         }
     };
 
     // direction == 1 => reg is destination
-    let (destination_str, source_str) = if direction {
-        (&reg_str, &rm_str)
+    let (destination_str, source_str, instruction) = if direction {
+        let instruction = Instruction::new(op, reg_operand, rm_operand);
+        (&reg_str, &rm_str, instruction)
     } else {
-        (&rm_str, &reg_str)
+        let instruction = Instruction::new(op, rm_operand, reg_operand);
+        (&rm_str, &reg_str, instruction)
     };
 
     output_fmt_op_dest_source(&mut output, op_str, destination_str, source_str);
-    (length, output)
+
+    (length, output, instruction)
 }
 
 /// Decodes MOV immediate to register instruction.
@@ -225,7 +229,7 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String, Ins
 
 /// Decodes MOV/ADD/SUB/CMP immediate to register/memory instruction with explicit sizes.
 /// Returns instruction length in bytes and output decoded string.
-fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String) {
+fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Instruction) {
     let mut length: usize = 1;
     let mut b = bytes[current];
 
@@ -240,7 +244,7 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String) {
     };
 
     if matches!(op, OpCode::Invalid) {
-        return (0, String::from(""));
+        return (0, String::from(""), Instruction::invalid());
     }
 
     let mut output: String = String::from("");
@@ -260,26 +264,26 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String) {
         displacement_mode::MEM_8_BIT => {
             b = bytes[current + length];
             length += 1;
-            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, 0).unwrap()
+            effective_address_calculation::get_eac_string_and_operand(rm, mode, b, 0).unwrap()
         }
         displacement_mode::MEM_16_BIT => {
             b = bytes[current + length];
             let disp_hi = bytes[current + length + 1];
             length += 2;
-            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, disp_hi).unwrap()
+            effective_address_calculation::get_eac_string_and_operand(rm, mode, b, disp_hi).unwrap()
         }
         displacement_mode::MEM_0_BIT if rm == 0b110 => {
             b = bytes[current + length];
             let disp_hi = bytes[current + length + 1];
             length += 2;
-            effective_address_calculation::get_eac_str_and_operand(rm, mode, b, disp_hi).unwrap()
+            effective_address_calculation::get_eac_string_and_operand(rm, mode, b, disp_hi).unwrap()
         }
         displacement_mode::MEM_0_BIT => {
-            effective_address_calculation::get_eac_str_and_operand(rm, mode, 0, 0).unwrap()
+            effective_address_calculation::get_eac_string_and_operand(rm, mode, 0, 0).unwrap()
         }
         _ => {
             println!("Invalid MOV mode: {:#b}", mode);
-            return (length, output);
+            return (length, output, Instruction::invalid());
         }
     };
 
@@ -304,13 +308,22 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String) {
 
     output_fmt_op_dest_source(&mut output, op_str, &rm_str, &data_string);
 
-    (length, output)
+    let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
+    src_operand.literal = Some(data);
+    let instruction = Instruction::new(op, rm_operand, src_operand);
+
+    (length, output, instruction)
 }
 
 /// Decodes MOV/ADD/SUB/CMP memory to/from/with accumulator.
 /// If `dir_acc_mem` parameter is `true`, direction is accumulator to address/data. This is only expected in MOVs.
 /// Returns instruction length in bytes and output decoded string.
-fn decode_mem_acc(op: OpCode, bytes: &[u8], current: usize, dir_acc_mem: bool) -> (usize, String) {
+fn decode_mem_acc(
+    op: OpCode,
+    bytes: &[u8],
+    current: usize,
+    dir_acc_mem: bool,
+) -> (usize, String, Instruction) {
     let mut output: String = String::from("");
     let op_str = op_code::strings::get_str(op);
     let mut length: usize = 1;
@@ -324,22 +337,35 @@ fn decode_mem_acc(op: OpCode, bytes: &[u8], current: usize, dir_acc_mem: bool) -
     length += 1;
 
     let mut address: u16 = b as u16;
+    let addr_lo = address as u8;
+    let mut addr_hi = 0;
     let mut address_string = String::from("[");
     if word {
         b = bytes[current + length];
+        addr_hi = b;
         length += 1;
         address += b as u16 * 256;
     }
     address_string.push_str(&address.to_string());
     address_string.push(']');
 
-    if dir_acc_mem {
+    let mut acc_operand = InstructionOperand::new(OperandType::REGISTER);
+    acc_operand.register = Some(register::word::AX);
+    acc_operand.register_word = Some(true);
+
+    // Treated like an direct address (mode 0b110) EAC operand with base address (rm) 0
+    // and 16-bit displacement (addr-lo and addr-high) as address.
+    let (_, rm_operand) = get_eac_string_and_operand(0, 0b110, addr_lo, addr_hi).unwrap();
+
+    let instruction = if dir_acc_mem {
         output_fmt_op_dest_source(&mut output, op_str, &address_string, &reg_string);
+        Instruction::new(op, rm_operand, acc_operand)
     } else {
         output_fmt_op_dest_source(&mut output, op_str, &reg_string, &address_string);
-    }
+        Instruction::new(op, acc_operand, rm_operand)
+    };
 
-    (length, output)
+    (length, output, instruction)
 }
 
 /// Decodes instructions that take an 8 bit signed increment as argument (jumps, loops).
@@ -356,6 +382,7 @@ fn decode_ip_inc_8(op: OpCode, bytes: &[u8], current: usize) -> (usize, String) 
     (length, output)
 }
 
+/// Pushes an string with the form `OP dest, src` to `output`
 fn output_fmt_op_dest_source(
     output: &mut String,
     op_str: &str,
@@ -370,6 +397,7 @@ fn output_fmt_op_dest_source(
     output.push('\n');
 }
 
+/// Pushes an string with the form `OP dest` to `output`
 fn output_fmt_op_dest(output: &mut String, op_str: &str, destination_str: &str) {
     output.push_str(op_str);
     output.push(' ');

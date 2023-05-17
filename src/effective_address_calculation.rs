@@ -5,7 +5,7 @@ use crate::{
 };
 
 /// Returns the decoded EAC as an string and InstructionOperand.
-pub fn get_eac_str_and_operand(
+pub fn get_eac_string_and_operand(
     rm: u8,
     mode: u8,
     displacement_low: u8,

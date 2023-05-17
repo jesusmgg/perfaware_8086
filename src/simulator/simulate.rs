@@ -63,11 +63,13 @@ fn simulate_mov(instruction: &Instruction, state: &mut SimulatorState) {
     let src_operand = &instruction.src_operand.as_ref().unwrap();
 
     let data = match src_operand.operand_type {
-        OperandType::REGISTER => todo!(),
+        OperandType::REGISTER => state.registers.read(
+            src_operand.register.unwrap(),
+            src_operand.register_word.unwrap(),
+        ),
         OperandType::EAC => todo!(),
-        OperandType::LITERAL => src_operand.literal,
-    }
-    .unwrap();
+        OperandType::LITERAL => src_operand.literal.unwrap(),
+    };
 
     let dest_operand = instruction.dest_operand.as_ref().unwrap();
     match dest_operand.operand_type {

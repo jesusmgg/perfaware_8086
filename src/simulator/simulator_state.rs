@@ -1,7 +1,4 @@
-use crate::register::{
-    self,
-    util::{get_register_string, get_register_string_and_operand},
-};
+use crate::register::{self, util::get_register_string};
 
 pub struct SimulatorState {
     pub registers: SimulatorRegisters,
@@ -39,6 +36,25 @@ impl SimulatorRegisters {
             bp: 0,
             si: 0,
             di: 0,
+        }
+    }
+
+    /// Read data from a register.
+    pub fn read(&self, reg_bytes: u8, is_word: bool) -> u16 {
+        match (is_word, reg_bytes) {
+            (true, register::word::AX) => self.ax,
+            (true, register::word::BX) => self.bx,
+            (true, register::word::CX) => self.cx,
+            (true, register::word::DX) => self.dx,
+            (true, register::word::SP) => self.sp,
+            (true, register::word::BP) => self.bp,
+            (true, register::word::SI) => self.si,
+            (true, register::word::DI) => self.di,
+            // TODO: use a recognizable default value
+            (true, _) => 0,
+            // TODO: manager byte registers
+            // TODO: use a recognizable default value
+            (false, _) => 0,
         }
     }
 
@@ -80,6 +96,7 @@ impl SimulatorRegisters {
                     old_data = self.di;
                     self.di = data;
                 }
+                // TODO: use a recognizable default value
                 _ => old_data = 0,
             }
         }
@@ -118,6 +135,7 @@ impl SimulatorRegisters {
                     old_data = self.di;
                     // self.di = data;
                 }
+                // TODO: use a recognizable default value
                 _ => old_data = 0,
             }
         }
