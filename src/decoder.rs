@@ -13,7 +13,7 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
 
     let bytes = &fs::read(file_name).unwrap();
     let bytes_len = bytes.len();
-    let mut cur_byte: usize = 0;
+    let mut curr_byte: usize = 0;
 
     let mut program = Program::new(bytes.clone());
 
@@ -21,15 +21,15 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
 
     output.push_str("bits 16\n\n");
 
-    while cur_byte < bytes_len {
-        let b = bytes[cur_byte]; // Current byte
+    while curr_byte < bytes_len {
+        let b = bytes[curr_byte]; // Current byte
         let mut instruction_length: usize;
         let mut decoded_string: String;
-        let mut instruction: Instruction;
+        let instruction: Instruction;
 
         // Instruction width 4
         (instruction_length, decoded_string, instruction) = match (b & 0b1111_0000) >> 4 {
-            op_code::width_4::MOV_IMMEDIATE_REG => decode_mov_immediate_reg(bytes, cur_byte),
+            op_code::width_4::MOV_IMMEDIATE_REG => decode_mov_immediate_reg(bytes, curr_byte),
             _ => (0, String::from(""), Instruction::invalid()),
         };
 
@@ -37,18 +37,18 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
         if instruction_length == 0 {
             (instruction_length, decoded_string) = match (b & 0b1111_1100) >> 2 {
                 op_code::width_6::MOV_REG_MEM_REG => {
-                    decode_reg_mem_reg(OpCode::Mov, bytes, cur_byte)
+                    decode_reg_mem_reg(OpCode::Mov, bytes, curr_byte)
                 }
                 op_code::width_6::ADD_REG_MEM_REG => {
-                    decode_reg_mem_reg(OpCode::Add, bytes, cur_byte)
+                    decode_reg_mem_reg(OpCode::Add, bytes, curr_byte)
                 }
                 op_code::width_6::SUB_REG_MEM_REG => {
-                    decode_reg_mem_reg(OpCode::Sub, bytes, cur_byte)
+                    decode_reg_mem_reg(OpCode::Sub, bytes, curr_byte)
                 }
                 op_code::width_6::CMP_REG_MEM_REG => {
-                    decode_reg_mem_reg(OpCode::Cmp, bytes, cur_byte)
+                    decode_reg_mem_reg(OpCode::Cmp, bytes, curr_byte)
                 }
-                op_code::width_6::IMMEDIATE_REG_MEM => decode_immediate_reg_mem(bytes, cur_byte),
+                op_code::width_6::IMMEDIATE_REG_MEM => decode_immediate_reg_mem(bytes, curr_byte),
                 _ => (0, String::from("")),
             };
         }
@@ -57,20 +57,22 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
         if instruction_length == 0 {
             (instruction_length, decoded_string) = match (b & 0b1111_1110) >> 1 {
                 op_code::width_7::MOV_IMMEDIATE_REG_MEM => {
-                    decode_immediate_reg_mem(bytes, cur_byte)
+                    decode_immediate_reg_mem(bytes, curr_byte)
                 }
                 op_code::width_7::MOV_MEM_ACC => {
-                    decode_mem_acc(OpCode::Mov, bytes, cur_byte, false)
+                    decode_mem_acc(OpCode::Mov, bytes, curr_byte, false)
                 }
-                op_code::width_7::MOV_ACC_MEM => decode_mem_acc(OpCode::Mov, bytes, cur_byte, true),
+                op_code::width_7::MOV_ACC_MEM => {
+                    decode_mem_acc(OpCode::Mov, bytes, curr_byte, true)
+                }
                 op_code::width_7::ADD_IMMEDIATE_ACC => {
-                    decode_mem_acc(OpCode::Add, bytes, cur_byte, false)
+                    decode_mem_acc(OpCode::Add, bytes, curr_byte, false)
                 }
                 op_code::width_7::SUB_IMMEDIATE_ACC => {
-                    decode_mem_acc(OpCode::Sub, bytes, cur_byte, false)
+                    decode_mem_acc(OpCode::Sub, bytes, curr_byte, false)
                 }
                 op_code::width_7::CMP_IMMEDIATE_ACC => {
-                    decode_mem_acc(OpCode::Cmp, bytes, cur_byte, false)
+                    decode_mem_acc(OpCode::Cmp, bytes, curr_byte, false)
                 }
                 _ => (0, String::from("")),
             };
@@ -79,26 +81,26 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
         // Instruction width 8
         if instruction_length == 0 {
             (instruction_length, decoded_string) = match b {
-                op_code::width_8::JNZ => decode_ip_inc_8(OpCode::Jnz, bytes, cur_byte),
-                op_code::width_8::JE => decode_ip_inc_8(OpCode::Je, bytes, cur_byte),
-                op_code::width_8::JL => decode_ip_inc_8(OpCode::Jl, bytes, cur_byte),
-                op_code::width_8::JLE => decode_ip_inc_8(OpCode::Jle, bytes, cur_byte),
-                op_code::width_8::JB => decode_ip_inc_8(OpCode::Jb, bytes, cur_byte),
-                op_code::width_8::JBE => decode_ip_inc_8(OpCode::Jbe, bytes, cur_byte),
-                op_code::width_8::JP => decode_ip_inc_8(OpCode::Jp, bytes, cur_byte),
-                op_code::width_8::JO => decode_ip_inc_8(OpCode::Jo, bytes, cur_byte),
-                op_code::width_8::JS => decode_ip_inc_8(OpCode::Js, bytes, cur_byte),
-                op_code::width_8::JNL => decode_ip_inc_8(OpCode::Jnl, bytes, cur_byte),
-                op_code::width_8::JG => decode_ip_inc_8(OpCode::Jg, bytes, cur_byte),
-                op_code::width_8::JNB => decode_ip_inc_8(OpCode::Jnb, bytes, cur_byte),
-                op_code::width_8::JA => decode_ip_inc_8(OpCode::Ja, bytes, cur_byte),
-                op_code::width_8::JNP => decode_ip_inc_8(OpCode::Jnp, bytes, cur_byte),
-                op_code::width_8::JNO => decode_ip_inc_8(OpCode::Jno, bytes, cur_byte),
-                op_code::width_8::JNS => decode_ip_inc_8(OpCode::Jns, bytes, cur_byte),
-                op_code::width_8::LOOP => decode_ip_inc_8(OpCode::Loop, bytes, cur_byte),
-                op_code::width_8::LOOPZ => decode_ip_inc_8(OpCode::Loopz, bytes, cur_byte),
-                op_code::width_8::LOOPNZ => decode_ip_inc_8(OpCode::Loopnz, bytes, cur_byte),
-                op_code::width_8::JCXZ => decode_ip_inc_8(OpCode::Jcxz, bytes, cur_byte),
+                op_code::width_8::JNZ => decode_ip_inc_8(OpCode::Jnz, bytes, curr_byte),
+                op_code::width_8::JE => decode_ip_inc_8(OpCode::Je, bytes, curr_byte),
+                op_code::width_8::JL => decode_ip_inc_8(OpCode::Jl, bytes, curr_byte),
+                op_code::width_8::JLE => decode_ip_inc_8(OpCode::Jle, bytes, curr_byte),
+                op_code::width_8::JB => decode_ip_inc_8(OpCode::Jb, bytes, curr_byte),
+                op_code::width_8::JBE => decode_ip_inc_8(OpCode::Jbe, bytes, curr_byte),
+                op_code::width_8::JP => decode_ip_inc_8(OpCode::Jp, bytes, curr_byte),
+                op_code::width_8::JO => decode_ip_inc_8(OpCode::Jo, bytes, curr_byte),
+                op_code::width_8::JS => decode_ip_inc_8(OpCode::Js, bytes, curr_byte),
+                op_code::width_8::JNL => decode_ip_inc_8(OpCode::Jnl, bytes, curr_byte),
+                op_code::width_8::JG => decode_ip_inc_8(OpCode::Jg, bytes, curr_byte),
+                op_code::width_8::JNB => decode_ip_inc_8(OpCode::Jnb, bytes, curr_byte),
+                op_code::width_8::JA => decode_ip_inc_8(OpCode::Ja, bytes, curr_byte),
+                op_code::width_8::JNP => decode_ip_inc_8(OpCode::Jnp, bytes, curr_byte),
+                op_code::width_8::JNO => decode_ip_inc_8(OpCode::Jno, bytes, curr_byte),
+                op_code::width_8::JNS => decode_ip_inc_8(OpCode::Jns, bytes, curr_byte),
+                op_code::width_8::LOOP => decode_ip_inc_8(OpCode::Loop, bytes, curr_byte),
+                op_code::width_8::LOOPZ => decode_ip_inc_8(OpCode::Loopz, bytes, curr_byte),
+                op_code::width_8::LOOPNZ => decode_ip_inc_8(OpCode::Loopnz, bytes, curr_byte),
+                op_code::width_8::JCXZ => decode_ip_inc_8(OpCode::Jcxz, bytes, curr_byte),
                 _ => (0, String::from("")),
             };
         }
@@ -115,7 +117,7 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
         // println!("  =>  {}", &decoded);
 
         output.push_str(&decoded_string);
-        cur_byte += instruction_length;
+        curr_byte += instruction_length;
 
         program.push_instruction(instruction);
     }
