@@ -2,6 +2,7 @@ use crate::register::{self, util::get_register_string};
 
 pub struct SimulatorState {
     pub registers: SimulatorRegisters,
+    pub flags_register: SimulatorFlagsRegister,
 }
 
 pub struct SimulatorRegisters {
@@ -16,11 +17,20 @@ pub struct SimulatorRegisters {
     di: u16,
 }
 
+pub struct SimulatorFlagsRegister {
+    pub sign: bool,
+    pub zero: bool,
+}
+
 impl SimulatorState {
     pub fn new() -> Self {
         let registers = SimulatorRegisters::new();
+        let flags_register = SimulatorFlagsRegister::new();
 
-        Self { registers }
+        Self {
+            registers,
+            flags_register,
+        }
     }
 }
 
@@ -161,5 +171,31 @@ DI: 0x{:02x}
 ",
             self.ax, self.bx, self.cx, self.dx, self.sp, self.bp, self.si, self.di
         );
+    }
+}
+
+impl SimulatorFlagsRegister {
+    pub fn new() -> Self {
+        Self {
+            zero: false,
+            sign: false,
+        }
+    }
+
+    pub fn print(&self) {
+        let mut flags_string = String::new();
+
+        if self.sign {
+            flags_string.push('S');
+        }
+        if self.zero {
+            flags_string.push('Z');
+        }
+
+        if flags_string.len() == 0 {
+            flags_string.push('-');
+        }
+
+        println!("Flags: {}", flags_string);
     }
 }
