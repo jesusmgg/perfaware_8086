@@ -58,6 +58,7 @@ pub fn simulate(file_name: &str) {
     println!("\nFinal state");
     state.registers.print();
     state.flags_register.print();
+    println!();
 }
 
 fn simulate_mov(instruction: &Instruction, state: &mut SimulatorState) {

@@ -3,6 +3,8 @@ use crate::register::{self, util::get_register_string};
 pub struct SimulatorState {
     pub registers: SimulatorRegisters,
     pub flags_register: SimulatorFlagsRegister,
+
+    pub ip: u16,
 }
 
 pub struct SimulatorRegisters {
@@ -27,10 +29,18 @@ impl SimulatorState {
         let registers = SimulatorRegisters::new();
         let flags_register = SimulatorFlagsRegister::new();
 
+        let ip = 0;
+
         Self {
             registers,
             flags_register,
+
+            ip,
         }
+    }
+
+    pub fn print_ip(&self) {
+        println!("IP: {}", self.ip);
     }
 }
 
