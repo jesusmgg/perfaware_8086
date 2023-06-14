@@ -162,23 +162,19 @@ impl SimulatorRegisters {
 
         let reg_string = get_register_string(reg_bytes, is_word);
 
-        println!(
-            "Register {}: 0x{:02x} -> 0x{:02x}",
-            reg_string, old_data, data
-        );
+        println!("  {}: 0x{:02x} -> 0x{:02x}", reg_string, old_data, data);
     }
 
     pub fn print(&self) {
         println!(
-            "AX: 0x{:02x}
-BX: 0x{:02x}
-CX: 0x{:02x}
-DX: 0x{:02x}
-SP: 0x{:02x}
-BP: 0x{:02x}
-SI: 0x{:02x}
-DI: 0x{:02x}
-",
+            "  AX: 0x{:02x}
+  BX: 0x{:02x}
+  CX: 0x{:02x}
+  DX: 0x{:02x}
+  SP: 0x{:02x}
+  BP: 0x{:02x}
+  SI: 0x{:02x}
+  DI: 0x{:02x}",
             self.ax, self.bx, self.cx, self.dx, self.sp, self.bp, self.si, self.di
         );
     }
@@ -206,6 +202,6 @@ impl SimulatorFlagsRegister {
             flags_string.push('-');
         }
 
-        println!("Flags: {}", flags_string);
+        println!("  Flags: {}", flags_string);
     }
 }

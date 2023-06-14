@@ -51,6 +51,8 @@ pub struct Instruction {
 
     pub dest_operand: Option<InstructionOperand>,
     pub src_operand: Option<InstructionOperand>,
+
+    pub decoded_string: Option<String>,
 }
 
 impl Instruction {
@@ -58,11 +60,13 @@ impl Instruction {
         op_code: OpCode,
         dest_operand: InstructionOperand,
         src_operand: InstructionOperand,
+        decoded_string: Option<String>,
     ) -> Self {
         Self {
             op_code,
             dest_operand: Some(dest_operand),
             src_operand: Some(src_operand),
+            decoded_string,
         }
     }
 
@@ -71,6 +75,7 @@ impl Instruction {
             op_code: OpCode::Invalid,
             dest_operand: None,
             src_operand: None,
+            decoded_string: None,
         }
     }
 }

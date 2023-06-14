@@ -8,7 +8,7 @@ use crate::{
 pub fn simulate(file_name: &str) {
     println!("Simulator started with {}", file_name);
 
-    let mut program = match decode(file_name) {
+    let mut program = match decode(file_name, false) {
         Ok(program) => program,
         Err(_) => {
             println!("Error: decoder failed, can't simulate program.");
@@ -17,40 +17,44 @@ pub fn simulate(file_name: &str) {
     };
 
     let mut state = SimulatorState::new();
-    println!("Initial state");
+    println!("\nInitial state");
     state.registers.print();
+    println!();
 
     while program.has_pending_instructions() {
         match program.next_instruction() {
-            Some(instruction) => match instruction.op_code {
-                OpCode::Invalid => {
-                    println!("Error: Can't simulate intruction: invalid op code.")
-                }
-                OpCode::Mov => simulate_mov(&instruction, &mut state),
-                OpCode::Add | OpCode::Sub | OpCode::Cmp => {
-                    simulate_add_mov_cmp(&instruction, &mut state)
-                }
-                OpCode::Jnz => todo!(),
-                OpCode::Je => todo!(),
-                OpCode::Jl => todo!(),
-                OpCode::Jle => todo!(),
-                OpCode::Jb => todo!(),
-                OpCode::Jbe => todo!(),
-                OpCode::Jp => todo!(),
-                OpCode::Jo => todo!(),
-                OpCode::Js => todo!(),
-                OpCode::Jnl => todo!(),
-                OpCode::Jg => todo!(),
-                OpCode::Jnb => todo!(),
-                OpCode::Ja => todo!(),
-                OpCode::Jnp => todo!(),
-                OpCode::Jno => todo!(),
-                OpCode::Jns => todo!(),
-                OpCode::Loop => todo!(),
-                OpCode::Loopz => todo!(),
-                OpCode::Loopnz => todo!(),
-                OpCode::Jcxz => todo!(),
-            },
+            Some(instruction) => {
+                println!("{}", instruction.decoded_string.as_ref().unwrap());
+                match instruction.op_code {
+                    OpCode::Invalid => {
+                        println!("Error: Can't simulate intruction: invalid op code.")
+                    }
+                    OpCode::Mov => simulate_mov(&instruction, &mut state),
+                    OpCode::Add | OpCode::Sub | OpCode::Cmp => {
+                        simulate_add_mov_cmp(&instruction, &mut state)
+                    }
+                    OpCode::Jnz => todo!(),
+                    OpCode::Je => todo!(),
+                    OpCode::Jl => todo!(),
+                    OpCode::Jle => todo!(),
+                    OpCode::Jb => todo!(),
+                    OpCode::Jbe => todo!(),
+                    OpCode::Jp => todo!(),
+                    OpCode::Jo => todo!(),
+                    OpCode::Js => todo!(),
+                    OpCode::Jnl => todo!(),
+                    OpCode::Jg => todo!(),
+                    OpCode::Jnb => todo!(),
+                    OpCode::Ja => todo!(),
+                    OpCode::Jnp => todo!(),
+                    OpCode::Jno => todo!(),
+                    OpCode::Jns => todo!(),
+                    OpCode::Loop => todo!(),
+                    OpCode::Loopz => todo!(),
+                    OpCode::Loopnz => todo!(),
+                    OpCode::Jcxz => todo!(),
+                };
+            }
             None => todo!(),
         }
     }

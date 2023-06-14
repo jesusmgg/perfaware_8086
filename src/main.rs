@@ -20,7 +20,7 @@ fn main() -> Result<(), ()> {
 
     match operation.as_str() {
         "decode" => {
-            decoder::decode(operand)?;
+            decoder::decode(operand, true)?;
         }
         "simulate" => {
             simulator::simulate::simulate(operand);

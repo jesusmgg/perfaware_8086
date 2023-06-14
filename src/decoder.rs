@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// Decodes an asm file and returns a `Program` with the decoded instructions.
-pub fn decode(file_name: &str) -> Result<Program, ()> {
+pub fn decode(file_name: &str, print: bool) -> Result<Program, ()> {
     println!("Decoder started with {}", file_name);
 
     let bytes = &fs::read(file_name).unwrap();
@@ -123,7 +123,11 @@ pub fn decode(file_name: &str) -> Result<Program, ()> {
         program.push_instruction(instruction);
     }
 
-    println!("{}", &output);
+    if print {
+        println!("{}", &output);
+    } else {
+        println!("Skipping decoder output...")
+    }
 
     Ok(program)
 }
@@ -179,15 +183,17 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
     };
 
     // direction == 1 => reg is destination
-    let (destination_str, source_str, instruction) = if direction {
-        let instruction = Instruction::new(op, reg_operand, rm_operand);
+    let (destination_str, source_str, mut instruction) = if direction {
+        let instruction = Instruction::new(op, reg_operand, rm_operand, None);
         (&reg_str, &rm_str, instruction)
     } else {
-        let instruction = Instruction::new(op, rm_operand, reg_operand);
+        let instruction = Instruction::new(op, rm_operand, reg_operand, None);
         (&rm_str, &reg_str, instruction)
     };
 
-    output_fmt_op_dest_source(&mut output, op_str, destination_str, source_str);
+    let decoded_string =
+        output_fmt_op_dest_source(&mut output, op_str, destination_str, source_str);
+    instruction.decoded_string = Some(decoded_string);
 
     (length, output, instruction)
 }
@@ -217,12 +223,14 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String, Ins
         data += b as u16 * 256;
     }
 
-    output_fmt_op_dest_source(&mut output, op_str, &reg_str, &data.to_string());
+    let decoded_string =
+        output_fmt_op_dest_source(&mut output, op_str, &reg_str, &data.to_string());
 
     let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
     src_operand.literal = Some(data);
 
-    let instruction = Instruction::new(op_code, reg_operand, src_operand);
+    let mut instruction = Instruction::new(op_code, reg_operand, src_operand, None);
+    instruction.decoded_string = Some(decoded_string);
 
     (length, output, instruction)
 }
@@ -306,11 +314,12 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
 
     data_string.push_str(&data.to_string());
 
-    output_fmt_op_dest_source(&mut output, op_str, &rm_str, &data_string);
+    let decoded_string = output_fmt_op_dest_source(&mut output, op_str, &rm_str, &data_string);
 
     let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
     src_operand.literal = Some(data);
-    let instruction = Instruction::new(op, rm_operand, src_operand);
+    let mut instruction = Instruction::new(op, rm_operand, src_operand, None);
+    instruction.decoded_string = Some(decoded_string);
 
     (length, output, instruction)
 }
@@ -358,11 +367,13 @@ fn decode_mem_acc(
     let (_, rm_operand) = get_eac_string_and_operand(0, 0b110, addr_lo, addr_hi).unwrap();
 
     let instruction = if dir_acc_mem {
-        output_fmt_op_dest_source(&mut output, op_str, &address_string, &reg_string);
-        Instruction::new(op, rm_operand, acc_operand)
+        let decoded_string =
+            output_fmt_op_dest_source(&mut output, op_str, &address_string, &reg_string);
+        Instruction::new(op, rm_operand, acc_operand, Some(decoded_string))
     } else {
-        output_fmt_op_dest_source(&mut output, op_str, &reg_string, &address_string);
-        Instruction::new(op, acc_operand, rm_operand)
+        let decoded_string =
+            output_fmt_op_dest_source(&mut output, op_str, &reg_string, &address_string);
+        Instruction::new(op, acc_operand, rm_operand, Some(decoded_string))
     };
 
     (length, output, instruction)
@@ -388,19 +399,31 @@ fn output_fmt_op_dest_source(
     op_str: &str,
     destination_str: &str,
     source_str: &str,
-) {
-    output.push_str(op_str);
-    output.push(' ');
-    output.push_str(destination_str);
-    output.push_str(", ");
-    output.push_str(source_str);
+) -> String {
+    let mut string = String::new();
+
+    string.push_str(op_str);
+    string.push(' ');
+    string.push_str(destination_str);
+    string.push_str(", ");
+    string.push_str(source_str);
+
+    output.push_str(&string);
     output.push('\n');
+
+    string
 }
 
 /// Pushes an string with the form `OP dest` to `output`
-fn output_fmt_op_dest(output: &mut String, op_str: &str, destination_str: &str) {
-    output.push_str(op_str);
-    output.push(' ');
-    output.push_str(destination_str);
+fn output_fmt_op_dest(output: &mut String, op_str: &str, destination_str: &str) -> String {
+    let mut string = String::new();
+
+    string.push_str(op_str);
+    string.push(' ');
+    string.push_str(destination_str);
+
+    output.push_str(&string);
     output.push('\n');
+
+    string
 }
