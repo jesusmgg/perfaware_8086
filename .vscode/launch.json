@@ -1,0 +1,45 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'perfaware_8086'",
+      "cargo": {
+        "args": [
+          "build",
+          "--bin=perfaware_8086",
+          "--package=perfaware_8086"
+        ],
+        "filter": {
+          "name": "perfaware_8086",
+          "kind": "bin"
+        }
+      },
+      "args": ["simulate", "asm/listing_0048_ip_register"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'perfaware_8086'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=perfaware_8086",
+          "--package=perfaware_8086"
+        ],
+        "filter": {
+          "name": "perfaware_8086",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
