@@ -27,5 +27,7 @@ pub fn get_str(op_code: OpCode) -> &'static str {
         OpCode::Loopnz => "LOOPNZ",
         OpCode::Jcxz => "JCXZ",
         OpCode::Invalid => "Invalid OpCode",
+        OpCode::InvalidAddress => "Invalid instruction address",
+        OpCode::EndOfProgram => "End of program",
     }
 }

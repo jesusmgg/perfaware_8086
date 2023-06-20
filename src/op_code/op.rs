@@ -1,6 +1,8 @@
 #[derive(Clone, Copy)]
 pub enum OpCode {
     Invalid,
+    InvalidAddress,
+    EndOfProgram,
     Mov,
     Add,
     Sub,

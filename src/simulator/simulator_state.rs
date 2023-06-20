@@ -4,7 +4,7 @@ pub struct SimulatorState {
     pub registers: SimulatorRegisters,
     pub flags_register: SimulatorFlagsRegister,
 
-    pub ip: u16,
+    ip: u16,
 }
 
 pub struct SimulatorRegisters {
@@ -39,8 +39,17 @@ impl SimulatorState {
         }
     }
 
+    pub fn read_ip(&self) -> u16 {
+        self.ip
+    }
+
+    pub fn write_ip(&mut self, ip: u16) {
+        println!("  IP: 0x{:04x} -> 0x{:04x}", self.ip, ip);
+        self.ip = ip;
+    }
+
     pub fn print_ip(&self) {
-        println!("  IP: 0x{:02x} ({})", self.ip, self.ip);
+        println!("  IP: 0x{:04x} ({})", self.ip, self.ip);
     }
 }
 
@@ -162,33 +171,33 @@ impl SimulatorRegisters {
 
         let reg_string = get_register_string(reg_bytes, is_word);
 
-        println!("  {}: 0x{:02x} -> 0x{:02x}", reg_string, old_data, data);
+        println!("  {}: 0x{:04x} -> 0x{:04x}", reg_string, old_data, data);
     }
 
     pub fn print(&self, skip_zero: bool) {
         if !skip_zero || self.ax != 0 {
-            println!("  AX: 0x{:02x} ({})", self.ax, self.ax);
+            println!("  AX: 0x{:04x} ({})", self.ax, self.ax);
         }
         if !skip_zero || self.bx != 0 {
-            println!("  BX: 0x{:02x} ({})", self.bx, self.bx);
+            println!("  BX: 0x{:04x} ({})", self.bx, self.bx);
         }
         if !skip_zero || self.cx != 0 {
-            println!("  CX: 0x{:02x} ({})", self.cx, self.cx);
+            println!("  CX: 0x{:04x} ({})", self.cx, self.cx);
         }
         if !skip_zero || self.dx != 0 {
-            println!("  DX: 0x{:02x} ({})", self.dx, self.dx);
+            println!("  DX: 0x{:04x} ({})", self.dx, self.dx);
         }
         if !skip_zero || self.sp != 0 {
-            println!("  SP: 0x{:02x} ({})", self.sp, self.sp);
+            println!("  SP: 0x{:04x} ({})", self.sp, self.sp);
         }
         if !skip_zero || self.bp != 0 {
-            println!("  BP: 0x{:02x} ({})", self.bp, self.bp);
+            println!("  BP: 0x{:04x} ({})", self.bp, self.bp);
         }
         if !skip_zero || self.si != 0 {
-            println!("  SI: 0x{:02x} ({})", self.si, self.si);
+            println!("  SI: 0x{:04x} ({})", self.si, self.si);
         }
         if !skip_zero || self.di != 0 {
-            println!("  DI: 0x{:02x} ({})", self.di, self.di);
+            println!("  DI: 0x{:04x} ({})", self.di, self.di);
         }
     }
 }

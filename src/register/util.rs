@@ -1,10 +1,13 @@
-use crate::{program::InstructionOperand, register};
+use crate::{
+    program::instruction::{InstructionOperand, OperandType},
+    register,
+};
 
 pub fn get_register_string_and_operand(
     reg_bytes: u8,
     is_word: bool,
 ) -> Option<(String, InstructionOperand)> {
-    let mut operand = InstructionOperand::new(crate::program::OperandType::REGISTER);
+    let mut operand = InstructionOperand::new(OperandType::REGISTER);
     operand.register = Some(reg_bytes);
     operand.register_word = Some(is_word);
 

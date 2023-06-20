@@ -1,6 +1,6 @@
 use crate::{
     displacement_mode,
-    program::{InstructionOperand, OperandType},
+    program::instruction::{InstructionOperand, OperandType},
     register,
 };
 

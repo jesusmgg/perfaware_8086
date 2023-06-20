@@ -2,7 +2,7 @@ mod decoder;
 mod displacement_mode;
 mod effective_address_calculation;
 mod op_code;
-pub mod program;
+mod program;
 mod register;
 mod simulator;
 

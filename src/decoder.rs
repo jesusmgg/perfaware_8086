@@ -4,7 +4,10 @@ use crate::{
     displacement_mode,
     effective_address_calculation::{self, get_eac_string_and_operand},
     op_code::{self, op::OpCode},
-    program::{Instruction, InstructionOperand, OperandType, Program},
+    program::{
+        instruction::{self, Instruction, InstructionOperand, OperandType},
+        program::Program,
+    },
     register::{self, util::get_register_string_and_operand},
 };
 
@@ -31,7 +34,7 @@ pub fn decode(file_name: &str, print: bool) -> Result<Program, ()> {
         // Instruction width 4
         (instruction_length, decoded_string, instruction) = match (b & 0b1111_0000) >> 4 {
             op_code::width_4::MOV_IMMEDIATE_REG => decode_mov_immediate_reg(bytes, curr_byte),
-            _ => (0, String::from(""), Instruction::invalid()),
+            _ => (0, String::from(""), instruction::INVALID.clone()),
         };
 
         // Instruction width 6
@@ -50,7 +53,7 @@ pub fn decode(file_name: &str, print: bool) -> Result<Program, ()> {
                     decode_reg_mem_reg(OpCode::Cmp, bytes, curr_byte)
                 }
                 op_code::width_6::IMMEDIATE_REG_MEM => decode_immediate_reg_mem(bytes, curr_byte),
-                _ => (0, String::from(""), Instruction::invalid()),
+                _ => (0, String::from(""), instruction::INVALID.clone()),
             };
         }
 
@@ -75,7 +78,7 @@ pub fn decode(file_name: &str, print: bool) -> Result<Program, ()> {
                 op_code::width_7::CMP_IMMEDIATE_ACC => {
                     decode_mem_acc(OpCode::Cmp, bytes, curr_byte, false)
                 }
-                _ => (0, String::from(""), Instruction::invalid()),
+                _ => (0, String::from(""), instruction::INVALID.clone()),
             };
         }
 
@@ -120,7 +123,7 @@ pub fn decode(file_name: &str, print: bool) -> Result<Program, ()> {
         output.push_str(&decoded_string);
         curr_byte += instruction_length;
 
-        program.push_instruction(instruction);
+        program.insert_instruction(instruction);
     }
 
     if print {
@@ -178,16 +181,16 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
         }
         _ => {
             println!("Invalid MOV mode: {:#b}", mode);
-            return (length, output, Instruction::invalid());
+            return (length, output, instruction::INVALID.clone());
         }
     };
 
     // direction == 1 => reg is destination
     let (destination_str, source_str, mut instruction) = if direction {
-        let instruction = Instruction::new(op, reg_operand, rm_operand, None);
+        let instruction = Instruction::new(op, reg_operand, rm_operand, None, current, length);
         (&reg_str, &rm_str, instruction)
     } else {
-        let instruction = Instruction::new(op, rm_operand, reg_operand, None);
+        let instruction = Instruction::new(op, rm_operand, reg_operand, None, current, length);
         (&rm_str, &reg_str, instruction)
     };
 
@@ -229,7 +232,8 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String, Ins
     let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
     src_operand.literal = Some(data);
 
-    let mut instruction = Instruction::new(op_code, reg_operand, src_operand, None);
+    let mut instruction =
+        Instruction::new(op_code, reg_operand, src_operand, None, current, length);
     instruction.decoded_string = Some(decoded_string);
 
     (length, output, instruction)
@@ -252,7 +256,7 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
     };
 
     if matches!(op, OpCode::Invalid) {
-        return (0, String::from(""), Instruction::invalid());
+        return (0, String::from(""), instruction::INVALID.clone());
     }
 
     let mut output: String = String::from("");
@@ -291,7 +295,7 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
         }
         _ => {
             println!("Invalid MOV mode: {:#b}", mode);
-            return (length, output, Instruction::invalid());
+            return (length, output, instruction::INVALID.clone());
         }
     };
 
@@ -318,7 +322,7 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
 
     let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
     src_operand.literal = Some(data);
-    let mut instruction = Instruction::new(op, rm_operand, src_operand, None);
+    let mut instruction = Instruction::new(op, rm_operand, src_operand, None, current, length);
     instruction.decoded_string = Some(decoded_string);
 
     (length, output, instruction)
@@ -369,11 +373,25 @@ fn decode_mem_acc(
     let instruction = if dir_acc_mem {
         let decoded_string =
             output_fmt_op_dest_source(&mut output, op_str, &address_string, &reg_string);
-        Instruction::new(op, rm_operand, acc_operand, Some(decoded_string))
+        Instruction::new(
+            op,
+            rm_operand,
+            acc_operand,
+            Some(decoded_string),
+            current,
+            length,
+        )
     } else {
         let decoded_string =
             output_fmt_op_dest_source(&mut output, op_str, &reg_string, &address_string);
-        Instruction::new(op, acc_operand, rm_operand, Some(decoded_string))
+        Instruction::new(
+            op,
+            acc_operand,
+            rm_operand,
+            Some(decoded_string),
+            current,
+            length,
+        )
     };
 
     (length, output, instruction)
