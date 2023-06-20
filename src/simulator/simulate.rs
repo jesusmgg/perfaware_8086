@@ -62,7 +62,7 @@ pub fn simulate(file_name: &str) {
                     break;
                 }
             },
-            None => break,
+            None => todo!(),
         };
     }
 
