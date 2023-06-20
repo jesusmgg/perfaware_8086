@@ -11,7 +11,7 @@ pub fn simulate(file_name: &str) {
     let mut program = match decode(file_name, false) {
         Ok(program) => program,
         Err(_) => {
-            println!("Error: decoder failed, can't simulate program.");
+            println!("Error: decoder failed, can't simulate program");
             return;
         }
     };
@@ -30,8 +30,12 @@ pub fn simulate(file_name: &str) {
                 OpCode::Add | OpCode::Sub | OpCode::Cmp => {
                     simulate_add_mov_cmp(&instruction, &mut state);
                 }
-                OpCode::Jnz => todo!(),
-                OpCode::Je => todo!(),
+                OpCode::Jnz => {
+                    simulate_conditional_jmp(&instruction, &mut state);
+                }
+                OpCode::Je => {
+                    simulate_conditional_jmp(&instruction, &mut state);
+                }
                 OpCode::Jl => todo!(),
                 OpCode::Jle => todo!(),
                 OpCode::Jb => todo!(),
@@ -52,10 +56,12 @@ pub fn simulate(file_name: &str) {
                 OpCode::Jcxz => todo!(),
 
                 OpCode::Invalid => {
-                    println!("Error: Can't simulate instruction: invalid op code");
+                    println!("Error: can't simulate instruction: invalid op code");
+                    break;
                 }
                 OpCode::InvalidAddress => {
-                    println!("Error: Can't simulate instruction: invalid address");
+                    println!("Error: can't simulate instruction: invalid address");
+                    break;
                 }
                 OpCode::EndOfProgram => {
                     println!("\nReached end of program");
@@ -165,4 +171,29 @@ fn simulate_add_mov_cmp(instruction: &Instruction, state: &mut SimulatorState) {
         }
         _ => todo!(), // Invalid
     }
+}
+
+fn simulate_conditional_jmp(instruction: &Instruction, state: &mut SimulatorState) {
+    print_instruction_info(&instruction);
+    state.write_ip(state.read_ip() + instruction.length as u16);
+
+    match (instruction.op_code, state.flags_register.zero) {
+        (OpCode::Jnz, false) | (OpCode::Je, true) => {
+            let dest_operand = instruction.dest_operand.as_ref().unwrap();
+            let data = match dest_operand.operand_type {
+                OperandType::LITERAL => dest_operand.literal.unwrap(),
+                _ => {
+                    println!("Error: invalid increment data type in conditional jump");
+                    0
+                }
+            };
+            let increment = data as i16;
+            let mut new_ip = state.read_ip() as i16 + increment;
+            if increment < 0 {
+                new_ip -= instruction.length as i16;
+            }
+            state.write_ip(new_ip as u16);
+        }
+        _ => {}
+    };
 }

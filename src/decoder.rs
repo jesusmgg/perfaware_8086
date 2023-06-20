@@ -84,7 +84,7 @@ pub fn decode(file_name: &str, print: bool) -> Result<Program, ()> {
 
         // Instruction width 8
         if instruction_length == 0 {
-            (instruction_length, decoded_string) = match b {
+            (instruction_length, decoded_string, instruction) = match b {
                 op_code::width_8::JNZ => decode_ip_inc_8(OpCode::Jnz, bytes, curr_byte),
                 op_code::width_8::JE => decode_ip_inc_8(OpCode::Je, bytes, curr_byte),
                 op_code::width_8::JL => decode_ip_inc_8(OpCode::Jl, bytes, curr_byte),
@@ -105,20 +105,14 @@ pub fn decode(file_name: &str, print: bool) -> Result<Program, ()> {
                 op_code::width_8::LOOPZ => decode_ip_inc_8(OpCode::Loopz, bytes, curr_byte),
                 op_code::width_8::LOOPNZ => decode_ip_inc_8(OpCode::Loopnz, bytes, curr_byte),
                 op_code::width_8::JCXZ => decode_ip_inc_8(OpCode::Jcxz, bytes, curr_byte),
-                _ => (0, String::from("")),
+                _ => (0, String::from(""), instruction::INVALID.clone()),
             };
         }
 
         if instruction_length == 0 {
-            eprintln!("Error: Instruction not handled (byte: {:#b})", b);
+            eprintln!("Error: instruction not handled (byte: {:#b})", b);
             break;
         }
-
-        // // Debug print
-        // for i in current..current + instruction_length {
-        //     print!("{:08b} ", bytes[i]);
-        // }
-        // println!("  =>  {}", &decoded);
 
         output.push_str(&decoded_string);
         curr_byte += instruction_length;
@@ -187,10 +181,24 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
 
     // direction == 1 => reg is destination
     let (destination_str, source_str, mut instruction) = if direction {
-        let instruction = Instruction::new(op, reg_operand, rm_operand, None, current, length);
+        let instruction = Instruction::new(
+            op,
+            Some(reg_operand),
+            Some(rm_operand),
+            None,
+            current,
+            length,
+        );
         (&reg_str, &rm_str, instruction)
     } else {
-        let instruction = Instruction::new(op, rm_operand, reg_operand, None, current, length);
+        let instruction = Instruction::new(
+            op,
+            Some(rm_operand),
+            Some(reg_operand),
+            None,
+            current,
+            length,
+        );
         (&rm_str, &reg_str, instruction)
     };
 
@@ -232,8 +240,14 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String, Ins
     let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
     src_operand.literal = Some(data);
 
-    let mut instruction =
-        Instruction::new(op_code, reg_operand, src_operand, None, current, length);
+    let mut instruction = Instruction::new(
+        op_code,
+        Some(reg_operand),
+        Some(src_operand),
+        None,
+        current,
+        length,
+    );
     instruction.decoded_string = Some(decoded_string);
 
     (length, output, instruction)
@@ -322,7 +336,14 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
 
     let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
     src_operand.literal = Some(data);
-    let mut instruction = Instruction::new(op, rm_operand, src_operand, None, current, length);
+    let mut instruction = Instruction::new(
+        op,
+        Some(rm_operand),
+        Some(src_operand),
+        None,
+        current,
+        length,
+    );
     instruction.decoded_string = Some(decoded_string);
 
     (length, output, instruction)
@@ -375,8 +396,8 @@ fn decode_mem_acc(
             output_fmt_op_dest_source(&mut output, op_str, &address_string, &reg_string);
         Instruction::new(
             op,
-            rm_operand,
-            acc_operand,
+            Some(rm_operand),
+            Some(acc_operand),
             Some(decoded_string),
             current,
             length,
@@ -386,8 +407,8 @@ fn decode_mem_acc(
             output_fmt_op_dest_source(&mut output, op_str, &reg_string, &address_string);
         Instruction::new(
             op,
-            acc_operand,
-            rm_operand,
+            Some(acc_operand),
+            Some(rm_operand),
             Some(decoded_string),
             current,
             length,
@@ -399,16 +420,29 @@ fn decode_mem_acc(
 
 /// Decodes instructions that take an 8 bit signed increment as argument (jumps, loops).
 /// Returns instruction length in bytes and output decoded string.
-fn decode_ip_inc_8(op: OpCode, bytes: &[u8], current: usize) -> (usize, String) {
+fn decode_ip_inc_8(op: OpCode, bytes: &[u8], current: usize) -> (usize, String, Instruction) {
     let mut output: String = String::from("");
     let op_str = op_code::strings::get_str(op);
     let length: usize = 2;
 
-    let increment: i8 = bytes[current + 1] as i8;
+    let increment: i8 = length as i8 + bytes[current + 1] as i8;
     let increment_string = format!("${:+}", increment);
-    output_fmt_op_dest(&mut output, op_str, &increment_string);
 
-    (length, output)
+    let decoded_string = output_fmt_op_dest(&mut output, op_str, &increment_string);
+
+    let mut dest_operand = InstructionOperand::new(OperandType::LITERAL);
+    dest_operand.literal = Some(increment as u16);
+
+    let instruction = Instruction::new(
+        op,
+        Some(dest_operand),
+        None,
+        Some(decoded_string),
+        current,
+        length,
+    );
+
+    (length, output, instruction)
 }
 
 /// Pushes an string with the form `OP dest, src` to `output`

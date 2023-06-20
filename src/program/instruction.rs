@@ -17,16 +17,16 @@ pub struct Instruction {
 impl Instruction {
     pub fn new(
         op_code: OpCode,
-        dest_operand: InstructionOperand,
-        src_operand: InstructionOperand,
+        dest_operand: Option<InstructionOperand>,
+        src_operand: Option<InstructionOperand>,
         decoded_string: Option<String>,
         start_byte: usize,
         length: usize,
     ) -> Self {
         Self {
             op_code,
-            dest_operand: Some(dest_operand),
-            src_operand: Some(src_operand),
+            dest_operand,
+            src_operand,
             decoded_string,
             start_byte,
             length,
