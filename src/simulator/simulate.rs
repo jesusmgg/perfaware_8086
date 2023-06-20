@@ -17,8 +17,7 @@ pub fn simulate(file_name: &str) {
     };
 
     let mut state = SimulatorState::new();
-    println!("\nInitial state");
-    state.registers.print();
+    println!("Starting simulation...");
     println!();
 
     while program.has_pending_instructions() {
@@ -60,7 +59,10 @@ pub fn simulate(file_name: &str) {
     }
 
     println!("\nFinal state");
-    state.registers.print();
+    state.registers.print(true);
+    println!();
+    state.print_ip();
+    println!();
     state.flags_register.print();
     println!();
 }

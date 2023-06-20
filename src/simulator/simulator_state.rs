@@ -40,7 +40,7 @@ impl SimulatorState {
     }
 
     pub fn print_ip(&self) {
-        println!("IP: {}", self.ip);
+        println!("  IP: 0x{:02x} ({})", self.ip, self.ip);
     }
 }
 
@@ -165,18 +165,31 @@ impl SimulatorRegisters {
         println!("  {}: 0x{:02x} -> 0x{:02x}", reg_string, old_data, data);
     }
 
-    pub fn print(&self) {
-        println!(
-            "  AX: 0x{:02x}
-  BX: 0x{:02x}
-  CX: 0x{:02x}
-  DX: 0x{:02x}
-  SP: 0x{:02x}
-  BP: 0x{:02x}
-  SI: 0x{:02x}
-  DI: 0x{:02x}",
-            self.ax, self.bx, self.cx, self.dx, self.sp, self.bp, self.si, self.di
-        );
+    pub fn print(&self, skip_zero: bool) {
+        if !skip_zero || self.ax != 0 {
+            println!("  AX: 0x{:02x} ({})", self.ax, self.ax);
+        }
+        if !skip_zero || self.bx != 0 {
+            println!("  BX: 0x{:02x} ({})", self.bx, self.bx);
+        }
+        if !skip_zero || self.cx != 0 {
+            println!("  CX: 0x{:02x} ({})", self.cx, self.cx);
+        }
+        if !skip_zero || self.dx != 0 {
+            println!("  DX: 0x{:02x} ({})", self.dx, self.dx);
+        }
+        if !skip_zero || self.sp != 0 {
+            println!("  SP: 0x{:02x} ({})", self.sp, self.sp);
+        }
+        if !skip_zero || self.bp != 0 {
+            println!("  BP: 0x{:02x} ({})", self.bp, self.bp);
+        }
+        if !skip_zero || self.si != 0 {
+            println!("  SI: 0x{:02x} ({})", self.si, self.si);
+        }
+        if !skip_zero || self.di != 0 {
+            println!("  DI: 0x{:02x} ({})", self.di, self.di);
+        }
     }
 }
 
