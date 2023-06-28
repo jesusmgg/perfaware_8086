@@ -322,9 +322,9 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
     if word {
         if !sign_extend {
             b = bytes[current + length];
-            length += 1;
             data += b as u16 * 256;
         }
+        length += 1;
         data_string = String::from("word ");
     } else {
         data_string = String::from("byte ");
