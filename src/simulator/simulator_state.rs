@@ -1,10 +1,14 @@
 use crate::register::{self, util::get_register_string};
 
+const MEMORY_SIZE: usize = 1024 * 1024;
+
 pub struct SimulatorState {
     pub registers: SimulatorRegisters,
     pub flags_register: SimulatorFlagsRegister,
 
     ip: u16,
+
+    memory: Vec<u8>,
 }
 
 pub struct SimulatorRegisters {
@@ -30,12 +34,14 @@ impl SimulatorState {
         let flags_register = SimulatorFlagsRegister::new();
 
         let ip = 0;
+        let memory = vec![0; MEMORY_SIZE];
 
         Self {
             registers,
             flags_register,
 
             ip,
+            memory,
         }
     }
 
@@ -50,6 +56,14 @@ impl SimulatorState {
 
     pub fn print_ip(&self) {
         println!("  IP: 0x{:04x} ({})", self.ip, self.ip);
+    }
+
+    pub fn read_mem_byte(&self, address: usize) -> u8 {
+        self.memory[address]
+    }
+
+    pub fn write_mem_byte(&mut self, address: usize, data: u8) {
+        self.memory[address] = data;
     }
 }
 

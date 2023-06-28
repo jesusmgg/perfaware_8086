@@ -68,16 +68,19 @@ pub fn get_eac_string_and_operand(
         displacement_mode::MEM_0_BIT if rm == 0b110 => {
             let disp = displacement_low as u16 + displacement_high as u16 * 256;
             operand.eac_displacement = Some(disp);
+            operand.register_word = Some(true);
             eac_string.push_str(disp.to_string().as_str());
         }
         displacement_mode::MEM_8_BIT => {
             operand.eac_displacement = Some(displacement_low as u16);
+            operand.register_word = Some(false);
             eac_string.push_str(" + ");
             eac_string.push_str(displacement_low.to_string().as_str());
         }
         displacement_mode::MEM_16_BIT => {
             let disp = displacement_low as u16 + displacement_high as u16 * 256;
             operand.eac_displacement = Some(disp);
+            operand.register_word = Some(true);
             eac_string.push_str(" + ");
             eac_string.push_str(disp.to_string().as_str());
         }

@@ -96,7 +96,28 @@ fn simulate_mov(instruction: &Instruction, state: &mut SimulatorState) {
             src_operand.register.unwrap(),
             src_operand.register_word.unwrap(),
         ),
-        OperandType::EAC => todo!(),
+        OperandType::EAC => {
+            let mut address: u16 = 0;
+            address += match src_operand.eac_reg_0 {
+                Some(reg) => state.registers.read(reg, true),
+                None => 0,
+            };
+            address += match src_operand.eac_reg_1 {
+                Some(reg) => state.registers.read(reg, true),
+                None => 0,
+            };
+            address += match src_operand.eac_displacement {
+                Some(displacement) => displacement,
+                None => 0,
+            };
+
+            let mut d = state.read_mem_byte(address as usize) as u16;
+            if src_operand.register_word.unwrap() {
+                d += state.read_mem_byte(address as usize + 1) as u16 * 256;
+            }
+
+            d
+        }
         OperandType::LITERAL => src_operand.literal.unwrap(),
     };
 
@@ -107,7 +128,29 @@ fn simulate_mov(instruction: &Instruction, state: &mut SimulatorState) {
             dest_operand.register.unwrap(),
             dest_operand.register_word.unwrap(),
         ),
-        OperandType::EAC => todo!(),
+        OperandType::EAC => {
+            let mut address: u16 = 0;
+            address += match dest_operand.eac_reg_0 {
+                Some(reg) => state.registers.read(reg, true),
+                None => 0,
+            };
+            address += match dest_operand.eac_reg_1 {
+                Some(reg) => state.registers.read(reg, true),
+                None => 0,
+            };
+            address += match dest_operand.eac_displacement {
+                Some(displacement) => displacement,
+                None => 0,
+            };
+
+            if src_operand.register_word.unwrap() {
+                let bytes = data.to_le_bytes();
+                state.write_mem_byte(address as usize, bytes[0]);
+                state.write_mem_byte(address as usize + 1, bytes[1]);
+            } else {
+                state.write_mem_byte(address as usize, data as u8)
+            }
+        }
         OperandType::LITERAL => todo!(),
     }
 }

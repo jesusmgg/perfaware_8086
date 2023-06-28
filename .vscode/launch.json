@@ -16,7 +16,7 @@
           "kind": "bin"
         }
       },
-      "args": ["simulate", "asm/listing_0049_conditional_jumps"],
+      "args": ["simulate", "asm/listing_0051_memory_mov"],
       "cwd": "${workspaceFolder}"
     },
     {

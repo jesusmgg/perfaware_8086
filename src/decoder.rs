@@ -239,6 +239,7 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String, Ins
 
     let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
     src_operand.literal = Some(data);
+    src_operand.register_word = Some(word);
 
     let mut instruction = Instruction::new(
         op_code,
@@ -336,6 +337,7 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
 
     let mut src_operand = InstructionOperand::new(OperandType::LITERAL);
     src_operand.literal = Some(data);
+    src_operand.register_word = Some(word);
     let mut instruction = Instruction::new(
         op,
         Some(rm_operand),
@@ -432,6 +434,7 @@ fn decode_ip_inc_8(op: OpCode, bytes: &[u8], current: usize) -> (usize, String, 
 
     let mut dest_operand = InstructionOperand::new(OperandType::LITERAL);
     dest_operand.literal = Some(increment as u16);
+    dest_operand.register_word = Some(false);
 
     let instruction = Instruction::new(
         op,
