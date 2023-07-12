@@ -320,16 +320,35 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
     let mut data: u16 = b as u16;
     let mut data_string;
 
-    if word {
-        if !sign_extend {
-            b = bytes[current + length];
-            data += b as u16 * 256;
+    match op {
+        OpCode::Mov => {
+            if word {
+                b = bytes[current + length];
+                data += b as u16 * 256;
+                length += 1;
+                data_string = String::from("word ");
+            } else {
+                data_string = String::from("byte ");
+            }
         }
-        length += 1;
-        data_string = String::from("word ");
-    } else {
-        data_string = String::from("byte ");
-    }
+        OpCode::Add | OpCode::Sub | OpCode::Cmp => {
+            if word || sign_extend {
+                b = bytes[current + length];
+                data += b as u16 * 256;
+                length += 1;
+                data_string = String::from("");
+                if !sign_extend {
+                    data_string = String::from("word ");
+                }
+            } else {
+                data_string = String::from("byte ");
+            }
+        }
+        _ => {
+            println!("  Invalid OpCode");
+            data_string = String::from("");
+        }
+    };
 
     data_string.push_str(&data.to_string());
 

@@ -16,7 +16,7 @@
           "kind": "bin"
         }
       },
-      "args": ["simulate", "asm/listing_0051_memory_mov"],
+      "args": ["decode", "asm/listing_0052_memory_add_loop"],
       "cwd": "${workspaceFolder}"
     },
     {
