@@ -1,6 +1,9 @@
+use std::io::Write;
+
 use crate::register::{self, util::get_register_string};
 
 const MEMORY_SIZE: usize = 1024 * 1024;
+const MEMORY_DUMP_FILE: &str = "memory.data";
 
 pub struct SimulatorState {
     pub registers: SimulatorRegisters,
@@ -8,6 +11,7 @@ pub struct SimulatorState {
 
     ip: u16,
 
+    // TODO: load the running 8086 program into the same addressable memory block.
     memory: Vec<u8>,
 }
 
@@ -64,6 +68,17 @@ impl SimulatorState {
 
     pub fn write_mem_byte(&mut self, address: usize, data: u8) {
         self.memory[address] = data;
+    }
+
+    pub fn dump_memory(&self) -> std::io::Result<()> {
+        println!("Dumping memory...");
+
+        let mut output_file = std::fs::File::create(&MEMORY_DUMP_FILE)?;
+        output_file.write_all(&self.memory)?;
+        output_file.sync_all()?;
+
+        println!("Memory dumped successfully to \"{}\"\n", &MEMORY_DUMP_FILE);
+        Ok(())
     }
 }
 

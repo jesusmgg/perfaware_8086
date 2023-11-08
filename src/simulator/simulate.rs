@@ -5,7 +5,7 @@ use crate::{
     simulator::simulator_state::SimulatorState,
 };
 
-pub fn simulate(file_name: &str) {
+pub fn simulate(file_name: &str, dump_memory: bool) {
     println!("Simulator started with {}", file_name);
 
     let mut program = match decode(file_name, false) {
@@ -82,6 +82,10 @@ pub fn simulate(file_name: &str) {
     println!();
     state.flags_register.print();
     println!();
+
+    if dump_memory {
+        state.dump_memory().unwrap();
+    }
 }
 
 fn print_instruction_info(instruction: &Instruction) {
