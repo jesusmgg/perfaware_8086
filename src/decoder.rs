@@ -332,7 +332,7 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
             }
         }
         OpCode::Add | OpCode::Sub | OpCode::Cmp => {
-            if word || sign_extend {
+            if word && !sign_extend {
                 b = bytes[current + length];
                 data += b as u16 * 256;
                 length += 1;
