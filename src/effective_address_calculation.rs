@@ -8,6 +8,7 @@ use crate::{
 pub fn get_eac_string_and_operand(
     rm: u8,
     mode: u8,
+    word: bool,
     displacement_low: u8,
     displacement_high: u8,
 ) -> Option<(String, InstructionOperand)> {
@@ -63,24 +64,23 @@ pub fn get_eac_string_and_operand(
 
     let mut eac_string = String::from(eac_str);
 
+    operand.register_word = Some(word);
+
     // Get displacement
     match mode {
         displacement_mode::MEM_0_BIT if rm == 0b110 => {
             let disp = displacement_low as u16 + displacement_high as u16 * 256;
             operand.eac_displacement = Some(disp);
-            operand.register_word = Some(true);
             eac_string.push_str(disp.to_string().as_str());
         }
         displacement_mode::MEM_8_BIT => {
             operand.eac_displacement = Some(displacement_low as u16);
-            operand.register_word = Some(false);
             eac_string.push_str(" + ");
             eac_string.push_str(displacement_low.to_string().as_str());
         }
         displacement_mode::MEM_16_BIT => {
             let disp = displacement_low as u16 + displacement_high as u16 * 256;
             operand.eac_displacement = Some(disp);
-            operand.register_word = Some(true);
             eac_string.push_str(" + ");
             eac_string.push_str(disp.to_string().as_str());
         }
