@@ -5,4 +5,5 @@ Instruction encoding info starts at page 257 (section 4-18).
 # Development log
 ## 2023-07-11
 - Identified that the decoder is failing with `pub const MOV_REG_MEM_REG: u8 = 0b100010;`.
+- Bug had to do with the decoding of CMP/ADD/SUB immediate to register memory, regarding the `data if s:w=01` condition.
 
