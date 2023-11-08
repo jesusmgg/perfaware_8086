@@ -5,6 +5,7 @@ use super::instruction::{self, Instruction};
 /// A decoded program
 pub struct Program {
     bytes_len: usize,
+    bytes: Vec<u8>,
 
     /// Decoded instructions.
     /// key: start_byte, value: instruction
@@ -14,11 +15,13 @@ pub struct Program {
 impl Program {
     pub fn new(bytes: Vec<u8>) -> Self {
         let bytes_len = bytes.len();
+        let bytes = bytes.clone();
 
         let instructions = HashMap::<usize, Instruction>::with_capacity(2048);
 
         Self {
             bytes_len,
+            bytes,
             instructions,
         }
     }
