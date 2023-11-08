@@ -28,7 +28,7 @@ pub fn simulate(file_name: &str) {
                     simulate_mov(&instruction, &mut state);
                 }
                 OpCode::Add | OpCode::Sub | OpCode::Cmp => {
-                    simulate_add_mov_cmp(&instruction, &mut state);
+                    simulate_add_sub_cmp(&instruction, &mut state);
                 }
                 OpCode::Jnz => {
                     simulate_conditional_jmp(&instruction, &mut state);
@@ -68,7 +68,10 @@ pub fn simulate(file_name: &str) {
                     break;
                 }
             },
-            None => todo!(),
+            None => {
+                println!("Error: no instruction decoded to simulate");
+                break;
+            }
         };
     }
 
@@ -155,7 +158,7 @@ fn simulate_mov(instruction: &Instruction, state: &mut SimulatorState) {
     }
 }
 
-fn simulate_add_mov_cmp(instruction: &Instruction, state: &mut SimulatorState) {
+fn simulate_add_sub_cmp(instruction: &Instruction, state: &mut SimulatorState) {
     print_instruction_info(&instruction);
     state.write_ip(state.read_ip() + instruction.length as u16);
 
@@ -165,8 +168,29 @@ fn simulate_add_mov_cmp(instruction: &Instruction, state: &mut SimulatorState) {
             src_operand.register.unwrap(),
             src_operand.register_word.unwrap(),
         ),
-        OperandType::EAC => todo!(),
         OperandType::LITERAL => src_operand.literal.unwrap(),
+        OperandType::EAC => {
+            let mut address: u16 = 0;
+            address += match src_operand.eac_reg_0 {
+                Some(reg) => state.registers.read(reg, true),
+                None => 0,
+            };
+            address += match src_operand.eac_reg_1 {
+                Some(reg) => state.registers.read(reg, true),
+                None => 0,
+            };
+            address += match src_operand.eac_displacement {
+                Some(displacement) => displacement,
+                None => 0,
+            };
+
+            let mut d = state.read_mem_byte(address as usize) as u16;
+            if src_operand.register_word.unwrap() {
+                d += state.read_mem_byte(address as usize + 1) as u16 * 256;
+            }
+
+            d
+        }
     };
 
     let dest_operand = instruction.dest_operand.as_ref().unwrap();
@@ -200,7 +224,7 @@ fn simulate_add_mov_cmp(instruction: &Instruction, state: &mut SimulatorState) {
                     state.flags_register.sign = (r & 0x8000) >> 15 == 1;
                     None
                 }
-                _ => todo!(), // Invalid
+                _ => panic!("Error: invalid opcode for ADD/SUB/CMP instruction"),
             };
             if result.is_some() {
                 let r = result.unwrap();
@@ -212,7 +236,7 @@ fn simulate_add_mov_cmp(instruction: &Instruction, state: &mut SimulatorState) {
             };
             state.flags_register.print();
         }
-        _ => todo!(), // Invalid
+        _ => todo!("Not yet implemented: ADD/SUB/CMP to memory"),
     }
 }
 

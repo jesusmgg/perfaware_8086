@@ -5,7 +5,7 @@ use super::instruction::{self, Instruction};
 /// A decoded program
 pub struct Program {
     bytes_len: usize,
-    bytes: Vec<u8>,
+    _bytes: Vec<u8>,
 
     /// Decoded instructions.
     /// key: start_byte, value: instruction
@@ -21,7 +21,7 @@ impl Program {
 
         Self {
             bytes_len,
-            bytes,
+            _bytes: bytes,
             instructions,
         }
     }
