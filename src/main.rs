@@ -22,10 +22,13 @@ fn main() -> Result<(), ()> {
 
     // Parse options
     let mut option_dump: bool = false;
+    let mut option_time: bool = false;
     if args_len > 3 {
         for i in 1..(args_len - 2) {
-            if args[i].as_str() == "dump" {
-                option_dump = true;
+            match args[i].as_str() {
+                "dump" => option_dump = true,
+                "time" => option_time = true,
+                invalid_option_str => println!("Skipping invalid option: {invalid_option_str}"),
             }
         }
     }
@@ -51,6 +54,7 @@ fn print_help() {
     println!("Usage: perfaware_8086 OPTIONS OPERATION INPUT_FILE");
     println!("\nOptions:");
     println!("  dump:       if simulating, dumps memory into file \"memory.data\". ");
+    println!("  time:       if simulating, estimates the cycles the program execution will take.");
     println!("\nOperations:");
     println!("  decode:     decodes the program and outputs the instruction.");
     println!("  simulate:   decodes and then simulates the program execution.");
