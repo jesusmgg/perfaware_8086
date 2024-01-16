@@ -9,6 +9,8 @@ pub struct SimulatorState {
     pub registers: SimulatorRegisters,
     pub flags_register: SimulatorFlagsRegister,
 
+    pub cycles: usize,
+
     ip: u16,
 
     // TODO: load the running 8086 program into the same addressable memory block.
@@ -37,12 +39,16 @@ impl SimulatorState {
         let registers = SimulatorRegisters::new();
         let flags_register = SimulatorFlagsRegister::new();
 
+        let cycles = 0;
+
         let ip = 0;
         let memory = vec![0; MEMORY_SIZE];
 
         Self {
             registers,
             flags_register,
+
+            cycles,
 
             ip,
             memory,

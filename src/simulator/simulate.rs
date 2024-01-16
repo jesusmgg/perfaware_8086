@@ -5,10 +5,10 @@ use crate::{
     simulator::simulator_state::SimulatorState,
 };
 
-pub fn simulate(file_name: &str, dump_memory: bool) {
+pub fn simulate(file_name: &str, dump_memory: bool, estimate_cycles: bool) {
     println!("Simulator started with {}", file_name);
 
-    let mut program = match decode(file_name, false) {
+    let mut program = match decode(file_name, false, estimate_cycles) {
         Ok(program) => program,
         Err(_) => {
             println!("Error: decoder failed, can't simulate program");
@@ -23,51 +23,56 @@ pub fn simulate(file_name: &str, dump_memory: bool) {
     loop {
         let instruction = program.get_instruction_at_byte(state.read_ip() as usize);
         match instruction {
-            Some(instruction) => match instruction.op_code {
-                OpCode::Mov => {
-                    simulate_mov(&instruction, &mut state);
+            Some(instruction) => {
+                if estimate_cycles {
+                    state.cycles += &instruction.time_estimation.unwrap().total_time();
                 }
-                OpCode::Add | OpCode::Sub | OpCode::Cmp => {
-                    simulate_add_sub_cmp(&instruction, &mut state);
-                }
-                OpCode::Jnz => {
-                    simulate_conditional_jmp(&instruction, &mut state);
-                }
-                OpCode::Je => {
-                    simulate_conditional_jmp(&instruction, &mut state);
-                }
-                OpCode::Jl => todo!(),
-                OpCode::Jle => todo!(),
-                OpCode::Jb => todo!(),
-                OpCode::Jbe => todo!(),
-                OpCode::Jp => todo!(),
-                OpCode::Jo => todo!(),
-                OpCode::Js => todo!(),
-                OpCode::Jnl => todo!(),
-                OpCode::Jg => todo!(),
-                OpCode::Jnb => todo!(),
-                OpCode::Ja => todo!(),
-                OpCode::Jnp => todo!(),
-                OpCode::Jno => todo!(),
-                OpCode::Jns => todo!(),
-                OpCode::Loop => todo!(),
-                OpCode::Loopz => todo!(),
-                OpCode::Loopnz => todo!(),
-                OpCode::Jcxz => todo!(),
+                match instruction.op_code {
+                    OpCode::Mov => {
+                        simulate_mov(&instruction, &mut state, estimate_cycles);
+                    }
+                    OpCode::Add | OpCode::Sub | OpCode::Cmp => {
+                        simulate_add_sub_cmp(&instruction, &mut state, estimate_cycles);
+                    }
+                    OpCode::Jnz => {
+                        simulate_conditional_jmp(&instruction, &mut state, estimate_cycles);
+                    }
+                    OpCode::Je => {
+                        simulate_conditional_jmp(&instruction, &mut state, estimate_cycles);
+                    }
+                    OpCode::Jl => todo!(),
+                    OpCode::Jle => todo!(),
+                    OpCode::Jb => todo!(),
+                    OpCode::Jbe => todo!(),
+                    OpCode::Jp => todo!(),
+                    OpCode::Jo => todo!(),
+                    OpCode::Js => todo!(),
+                    OpCode::Jnl => todo!(),
+                    OpCode::Jg => todo!(),
+                    OpCode::Jnb => todo!(),
+                    OpCode::Ja => todo!(),
+                    OpCode::Jnp => todo!(),
+                    OpCode::Jno => todo!(),
+                    OpCode::Jns => todo!(),
+                    OpCode::Loop => todo!(),
+                    OpCode::Loopz => todo!(),
+                    OpCode::Loopnz => todo!(),
+                    OpCode::Jcxz => todo!(),
 
-                OpCode::Invalid => {
-                    println!("Error: can't simulate instruction: invalid op code");
-                    break;
+                    OpCode::Invalid => {
+                        println!("Error: can't simulate instruction: invalid op code");
+                        break;
+                    }
+                    OpCode::InvalidAddress => {
+                        println!("Error: can't simulate instruction: invalid address");
+                        break;
+                    }
+                    OpCode::EndOfProgram => {
+                        println!("\nReached end of program");
+                        break;
+                    }
                 }
-                OpCode::InvalidAddress => {
-                    println!("Error: can't simulate instruction: invalid address");
-                    break;
-                }
-                OpCode::EndOfProgram => {
-                    println!("\nReached end of program");
-                    break;
-                }
-            },
+            }
             None => {
                 println!("Error: no instruction decoded to simulate");
                 break;
@@ -88,12 +93,27 @@ pub fn simulate(file_name: &str, dump_memory: bool) {
     }
 }
 
-fn print_instruction_info(instruction: &Instruction) {
-    println!("{}", instruction.decoded_string.as_ref().unwrap());
+fn print_instruction_info(instruction: &Instruction, state: &SimulatorState, print_cycles: bool) {
+    let cycles_string = if print_cycles {
+        let time_estimation = instruction.time_estimation.unwrap();
+        format!(
+            " ; Cycles: +{} = {}",
+            time_estimation.get_string(),
+            state.cycles
+        )
+    } else {
+        String::from("")
+    };
+
+    println!(
+        "{}{}",
+        instruction.decoded_string.as_ref().unwrap(),
+        cycles_string
+    );
 }
 
-fn simulate_mov(instruction: &Instruction, state: &mut SimulatorState) {
-    print_instruction_info(&instruction);
+fn simulate_mov(instruction: &Instruction, state: &mut SimulatorState, print_cycles: bool) {
+    print_instruction_info(&instruction, &state, print_cycles);
     state.write_ip(state.read_ip() + instruction.length as u16);
 
     let src_operand = &instruction.src_operand.as_ref().unwrap();
@@ -162,8 +182,8 @@ fn simulate_mov(instruction: &Instruction, state: &mut SimulatorState) {
     }
 }
 
-fn simulate_add_sub_cmp(instruction: &Instruction, state: &mut SimulatorState) {
-    print_instruction_info(&instruction);
+fn simulate_add_sub_cmp(instruction: &Instruction, state: &mut SimulatorState, print_cycles: bool) {
+    print_instruction_info(&instruction, &state, print_cycles);
     state.write_ip(state.read_ip() + instruction.length as u16);
 
     let src_operand = &instruction.src_operand.as_ref().unwrap();
@@ -244,8 +264,12 @@ fn simulate_add_sub_cmp(instruction: &Instruction, state: &mut SimulatorState) {
     }
 }
 
-fn simulate_conditional_jmp(instruction: &Instruction, state: &mut SimulatorState) {
-    print_instruction_info(&instruction);
+fn simulate_conditional_jmp(
+    instruction: &Instruction,
+    state: &mut SimulatorState,
+    print_cycles: bool,
+) {
+    print_instruction_info(&instruction, &state, print_cycles);
     state.write_ip(state.read_ip() + instruction.length as u16);
 
     match (instruction.op_code, state.flags_register.zero) {

@@ -37,10 +37,10 @@ fn main() -> Result<(), ()> {
     let operation = &args[args_len - 2];
     match operation.as_str() {
         "decode" => {
-            decoder::decode(operand, true)?;
+            decoder::decode(operand, true, option_time)?;
         }
         "simulate" => {
-            simulator::simulate::simulate(operand, option_dump);
+            simulator::simulate::simulate(operand, option_dump, option_time);
         }
         &_ => {
             print_help();

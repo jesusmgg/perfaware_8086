@@ -5,14 +5,14 @@ use crate::{
     effective_address_calculation::{self, get_eac_string_and_operand},
     op_code::{self, op::OpCode},
     program::{
-        instruction::{self, Instruction, InstructionOperand, OperandType},
+        instruction::{self, Instruction, InstructionOperand, InstructionTime, OperandType},
         program::Program,
     },
     register::{self, util::get_register_string_and_operand},
 };
 
 /// Decodes an asm file and returns a `Program` with the decoded instructions.
-pub fn decode(file_name: &str, print: bool) -> Result<Program, ()> {
+pub fn decode(file_name: &str, print: bool, estimate_cycles: bool) -> Result<Program, ()> {
     println!("Decoder started with {}", file_name);
 
     let bytes = &fs::read(file_name).unwrap();
@@ -85,26 +85,66 @@ pub fn decode(file_name: &str, print: bool) -> Result<Program, ()> {
         // Instruction width 8
         if instruction_length == 0 {
             (instruction_length, decoded_string, instruction) = match b {
-                op_code::width_8::JNZ => decode_ip_inc_8(OpCode::Jnz, bytes, curr_byte),
-                op_code::width_8::JE => decode_ip_inc_8(OpCode::Je, bytes, curr_byte),
-                op_code::width_8::JL => decode_ip_inc_8(OpCode::Jl, bytes, curr_byte),
-                op_code::width_8::JLE => decode_ip_inc_8(OpCode::Jle, bytes, curr_byte),
-                op_code::width_8::JB => decode_ip_inc_8(OpCode::Jb, bytes, curr_byte),
-                op_code::width_8::JBE => decode_ip_inc_8(OpCode::Jbe, bytes, curr_byte),
-                op_code::width_8::JP => decode_ip_inc_8(OpCode::Jp, bytes, curr_byte),
-                op_code::width_8::JO => decode_ip_inc_8(OpCode::Jo, bytes, curr_byte),
-                op_code::width_8::JS => decode_ip_inc_8(OpCode::Js, bytes, curr_byte),
-                op_code::width_8::JNL => decode_ip_inc_8(OpCode::Jnl, bytes, curr_byte),
-                op_code::width_8::JG => decode_ip_inc_8(OpCode::Jg, bytes, curr_byte),
-                op_code::width_8::JNB => decode_ip_inc_8(OpCode::Jnb, bytes, curr_byte),
-                op_code::width_8::JA => decode_ip_inc_8(OpCode::Ja, bytes, curr_byte),
-                op_code::width_8::JNP => decode_ip_inc_8(OpCode::Jnp, bytes, curr_byte),
-                op_code::width_8::JNO => decode_ip_inc_8(OpCode::Jno, bytes, curr_byte),
-                op_code::width_8::JNS => decode_ip_inc_8(OpCode::Jns, bytes, curr_byte),
-                op_code::width_8::LOOP => decode_ip_inc_8(OpCode::Loop, bytes, curr_byte),
-                op_code::width_8::LOOPZ => decode_ip_inc_8(OpCode::Loopz, bytes, curr_byte),
-                op_code::width_8::LOOPNZ => decode_ip_inc_8(OpCode::Loopnz, bytes, curr_byte),
-                op_code::width_8::JCXZ => decode_ip_inc_8(OpCode::Jcxz, bytes, curr_byte),
+                op_code::width_8::JNZ => {
+                    decode_ip_inc_8(OpCode::Jnz, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JE => {
+                    decode_ip_inc_8(OpCode::Je, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JL => {
+                    decode_ip_inc_8(OpCode::Jl, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JLE => {
+                    decode_ip_inc_8(OpCode::Jle, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JB => {
+                    decode_ip_inc_8(OpCode::Jb, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JBE => {
+                    decode_ip_inc_8(OpCode::Jbe, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JP => {
+                    decode_ip_inc_8(OpCode::Jp, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JO => {
+                    decode_ip_inc_8(OpCode::Jo, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JS => {
+                    decode_ip_inc_8(OpCode::Js, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JNL => {
+                    decode_ip_inc_8(OpCode::Jnl, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JG => {
+                    decode_ip_inc_8(OpCode::Jg, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JNB => {
+                    decode_ip_inc_8(OpCode::Jnb, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JA => {
+                    decode_ip_inc_8(OpCode::Ja, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JNP => {
+                    decode_ip_inc_8(OpCode::Jnp, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JNO => {
+                    decode_ip_inc_8(OpCode::Jno, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JNS => {
+                    decode_ip_inc_8(OpCode::Jns, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::LOOP => {
+                    decode_ip_inc_8(OpCode::Loop, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::LOOPZ => {
+                    decode_ip_inc_8(OpCode::Loopz, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::LOOPNZ => {
+                    decode_ip_inc_8(OpCode::Loopnz, bytes, curr_byte, estimate_cycles)
+                }
+                op_code::width_8::JCXZ => {
+                    decode_ip_inc_8(OpCode::Jcxz, bytes, curr_byte, estimate_cycles)
+                }
                 _ => (0, String::from(""), instruction::INVALID.clone()),
             };
         }
@@ -190,6 +230,7 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
             None,
             current,
             length,
+            InstructionTime::new_from_estimation(op, &reg_operand, &rm_operand),
         );
         (&reg_str, &rm_str, instruction)
     } else {
@@ -200,6 +241,7 @@ fn decode_reg_mem_reg(op: OpCode, bytes: &[u8], current: usize) -> (usize, Strin
             None,
             current,
             length,
+            InstructionTime::new_from_estimation(op, &rm_operand, &reg_operand),
         );
         (&rm_str, &reg_str, instruction)
     };
@@ -250,6 +292,7 @@ fn decode_mov_immediate_reg(bytes: &[u8], current: usize) -> (usize, String, Ins
         None,
         current,
         length,
+        InstructionTime::new_from_estimation(op_code, &reg_operand, &src_operand),
     );
     instruction.decoded_string = Some(decoded_string);
 
@@ -368,6 +411,7 @@ fn decode_immediate_reg_mem(bytes: &[u8], current: usize) -> (usize, String, Ins
         None,
         current,
         length,
+        InstructionTime::new_from_estimation(op, &rm_operand, &src_operand),
     );
     instruction.decoded_string = Some(decoded_string);
 
@@ -426,6 +470,7 @@ fn decode_mem_acc(
             Some(decoded_string),
             current,
             length,
+            InstructionTime::new_from_estimation(op, &rm_operand, &acc_operand),
         )
     } else {
         let decoded_string =
@@ -437,6 +482,7 @@ fn decode_mem_acc(
             Some(decoded_string),
             current,
             length,
+            InstructionTime::new_from_estimation(op, &acc_operand, &rm_operand),
         )
     };
 
@@ -445,7 +491,16 @@ fn decode_mem_acc(
 
 /// Decodes instructions that take an 8 bit signed increment as argument (jumps, loops).
 /// Returns instruction length in bytes and output decoded string.
-fn decode_ip_inc_8(op: OpCode, bytes: &[u8], current: usize) -> (usize, String, Instruction) {
+fn decode_ip_inc_8(
+    op: OpCode,
+    bytes: &[u8],
+    current: usize,
+    estimate_time: bool,
+) -> (usize, String, Instruction) {
+    if estimate_time {
+        todo!()
+    }
+
     let mut output: String = String::from("");
     let op_str = op_code::strings::get_str(op);
     let length: usize = 2;
@@ -466,6 +521,7 @@ fn decode_ip_inc_8(op: OpCode, bytes: &[u8], current: usize) -> (usize, String, 
         Some(decoded_string),
         current,
         length,
+        None,
     );
 
     (length, output, instruction)
