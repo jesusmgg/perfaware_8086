@@ -412,7 +412,7 @@ fn decode_mem_acc(
     acc_operand.register = Some(register::word::AX);
     acc_operand.register_word = Some(true);
 
-    // Treated like an direct address (mode 0b110) EAC operand with base address (rm) 0
+    // Treated like a direct address (mode 0b110) EAC operand with base address (rm) 0
     // and 16-bit displacement (addr-lo and addr-high) as address.
     let (_, rm_operand) = get_eac_string_and_operand(0, 0b110, word, addr_lo, addr_hi).unwrap();
 
