@@ -6,6 +6,8 @@ Instruction encoding info starts at page 257 (section 4-18).
 ## 2024-01-16
 - Implemented `time` option for simulator that estimates execution cycles.
 - Pending to have `time` option finished: implement CMP/ADD/SUB to memory.
+- Implementd CMP/ADD/SUB to memory.
+- Decided not to implement data transfer estimations.
 
 ## 2023-07-11
 - Identified that the decoder is failing with `pub const MOV_REG_MEM_REG: u8 = 0b100010;`.

@@ -25,7 +25,11 @@ pub fn simulate(file_name: &str, dump_memory: bool, estimate_cycles: bool) {
         match instruction {
             Some(instruction) => {
                 if estimate_cycles {
-                    state.cycles += &instruction.time_estimation.unwrap().total_time();
+                    state.cycles += match &instruction.time_estimation {
+                        Some(time_estimation) => time_estimation.total_time(),
+                        None if instruction.op_code == OpCode::EndOfProgram => 0,
+                        _ => panic!("Error: invalid instruction for time estimation"),
+                    }
                 }
                 match instruction.op_code {
                     OpCode::Mov => {
@@ -223,7 +227,18 @@ fn simulate_add_sub_cmp(instruction: &Instruction, state: &mut SimulatorState, p
             dest_operand.register.unwrap(),
             dest_operand.register_word.unwrap(),
         ),
-        OperandType::EAC => todo!(),
+        OperandType::EAC => {
+            let mut addr = dest_operand.eac_displacement.unwrap_or_default();
+            addr += match dest_operand.eac_reg_0 {
+                Some(reg) => state.registers.read(reg, true),
+                None => 0,
+            };
+            addr += match dest_operand.eac_reg_1 {
+                Some(reg) => state.registers.read(reg, true),
+                None => 0,
+            };
+            state.read_mem_word(addr as usize)
+        }
         OperandType::LITERAL => dest_operand.literal.unwrap(),
     };
 
@@ -260,7 +275,47 @@ fn simulate_add_sub_cmp(instruction: &Instruction, state: &mut SimulatorState, p
             };
             state.flags_register.print();
         }
-        _ => todo!("Not yet implemented: ADD/SUB/CMP to memory"),
+        OperandType::EAC => {
+            let result: Option<u16> = match instruction.op_code {
+                OpCode::Add => {
+                    let r = (data_dest as i16 + data_src as i16) as u16;
+                    state.flags_register.zero = r == 0;
+                    state.flags_register.sign = (r & 0x8000) >> 15 == 1;
+                    Some(r)
+                }
+                OpCode::Sub => {
+                    let r = (data_dest as i16 - data_src as i16) as u16;
+                    state.flags_register.zero = r == 0;
+                    state.flags_register.sign = (r & 0x8000) >> 15 == 1;
+                    Some(r)
+                }
+                OpCode::Cmp => {
+                    let r = (data_dest as i16 - data_src as i16) as u16;
+                    state.flags_register.zero = r == 0;
+                    state.flags_register.sign = (r & 0x8000) >> 15 == 1;
+                    None
+                }
+                _ => panic!("Error: invalid opcode for ADD/SUB/CMP instruction"),
+            };
+            if result.is_some() {
+                // Get memory address
+                let mut addr = dest_operand.eac_displacement.unwrap_or_default();
+                addr += match dest_operand.eac_reg_0 {
+                    Some(reg) => state.registers.read(reg, true),
+                    None => 0,
+                };
+                addr += match dest_operand.eac_reg_1 {
+                    Some(reg) => state.registers.read(reg, true),
+                    None => 0,
+                };
+
+                // Write data to memory
+                let r = result.unwrap();
+                state.write_mem_word(addr as usize, r);
+            };
+            state.flags_register.print();
+        }
+        OperandType::LITERAL => panic!("Error: ADD/SUB/CMP to literal is not a valid operation"),
     }
 }
 

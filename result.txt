@@ -1,0 +1,67 @@
+Simulator started with asm/listing_0057_challenge_cycles
+Decoder started with asm/listing_0057_challenge_cycles
+Skipping decoder output...
+Starting simulation...
+
+MOV BX, 1000 ; Cycles: +4 = 4
+  IP: 0x0000 -> 0x0003
+  BX: 0x0000 -> 0x03e8
+MOV BP, 2000 ; Cycles: +4 = 8
+  IP: 0x0003 -> 0x0006
+  BP: 0x0000 -> 0x07d0
+MOV SI, 3000 ; Cycles: +4 = 12
+  IP: 0x0006 -> 0x0009
+  SI: 0x0000 -> 0x0bb8
+MOV DI, 4000 ; Cycles: +4 = 16
+  IP: 0x0009 -> 0x000c
+  DI: 0x0000 -> 0x0fa0
+MOV CX, [BP + DI] ; Cycles: +15 (8 + 7ea) = 31
+  IP: 0x000c -> 0x000e
+  CX: 0x0000 -> 0x0000
+MOV [BX + SI], CX ; Cycles: +16 (9 + 7ea) = 47
+  IP: 0x000e -> 0x0010
+MOV CX, [BP + SI] ; Cycles: +16 (8 + 8ea) = 63
+  IP: 0x0010 -> 0x0012
+  CX: 0x0000 -> 0x0000
+MOV [BX + DI], CX ; Cycles: +17 (9 + 8ea) = 80
+  IP: 0x0012 -> 0x0014
+MOV CX, [BP + DI + 1000] ; Cycles: +19 (8 + 11ea) = 99
+  IP: 0x0014 -> 0x0018
+  CX: 0x0000 -> 0x0000
+MOV [BX + SI + 1000], CX ; Cycles: +20 (9 + 11ea) = 119
+  IP: 0x0018 -> 0x001c
+MOV CX, [BP + SI + 1000] ; Cycles: +20 (8 + 12ea) = 139
+  IP: 0x001c -> 0x0020
+  CX: 0x0000 -> 0x0000
+MOV [BX + DI + 1000], CX ; Cycles: +21 (9 + 12ea) = 160
+  IP: 0x0020 -> 0x0024
+ADD DX, [BP + SI + 1000] ; Cycles: +21 (9 + 12ea) = 181
+  IP: 0x0024 -> 0x0028
+  DX: 0x0000 -> 0x0000
+  Flags: Z
+ADD [BP + SI], byte 76 ; Cycles: +25 (17 + 8ea) = 206
+  IP: 0x0028 -> 0x002b
+  Flags: -
+ADD DX, [BP + SI + 1001] ; Cycles: +21 (9 + 12ea) = 227
+  IP: 0x002b -> 0x002f
+  DX: 0x0000 -> 0x0000
+  Flags: Z
+ADD [DI + 999], DX ; Cycles: +25 (16 + 9ea) = 252
+  IP: 0x002f -> 0x0033
+  Flags: -
+ADD [BP + SI], byte 75 ; Cycles: +25 (17 + 8ea) = 277
+  IP: 0x0033 -> 0x0036
+  Flags: -
+
+Reached end of program
+
+Final state
+  BX: 0x03e8 (1000)
+  BP: 0x07d0 (2000)
+  SI: 0x0bb8 (3000)
+  DI: 0x0fa0 (4000)
+
+  IP: 0x0036 (54)
+
+  Flags: -
+

@@ -72,8 +72,18 @@ impl SimulatorState {
         self.memory[address]
     }
 
+    pub fn read_mem_word(&self, address_lo: usize) -> u16 {
+        self.read_mem_byte(address_lo) as u16 + self.read_mem_byte(address_lo + 1) as u16
+    }
+
     pub fn write_mem_byte(&mut self, address: usize, data: u8) {
         self.memory[address] = data;
+    }
+
+    pub fn write_mem_word(&mut self, address_lo: usize, data: u16) {
+        let bytes = data.to_le_bytes();
+        self.write_mem_byte(address_lo as usize, bytes[0]);
+        self.write_mem_byte(address_lo as usize + 1, bytes[1]);
     }
 
     pub fn dump_memory(&self) -> std::io::Result<()> {
@@ -114,11 +124,9 @@ impl SimulatorRegisters {
             (true, register::word::BP) => self.bp,
             (true, register::word::SI) => self.si,
             (true, register::word::DI) => self.di,
-            // TODO: use a recognizable default value
-            (true, _) => 0,
+            (true, _) => panic!("Error: register not recognized when trying to read"),
             // TODO: manager byte registers
-            // TODO: use a recognizable default value
-            (false, _) => 0,
+            (false, _) => todo!("Error: reading from byte registers not implemented"),
         }
     }
 
